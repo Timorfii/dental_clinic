@@ -1,0 +1,184 @@
+{% extends "Main.html" %}
+
+{% block title %}Карточка пациента - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0"> Карточка пациента</h4>
+                        <span class="badge bg-light text-dark">ID: {{ current_user.id }}</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>{{ patient_info.first_name or '' }} {{ patient_info.last_name or '' }}</h5>
+                            <p class="mb-1"><strong>Телефон:</strong> {{ patient_info.phone_number or 'Не указан' }}</p>
+                            <p class="mb-1"><strong>Email:</strong> {{ patient_info.email }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Дата рождения:</strong> 
+                                {% if patient_info.date_of_birth %}
+                                    {{ patient_info.date_of_birth.strftime('%d.%m.%Y') }}
+                                {% else %}
+                                    Не указана
+                                {% endif %}
+                            </p>
+                            <p class="mb-1"><strong>Полис:</strong> {{ patient_info.policy_number or 'Не указан' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"> История приемов</h5>
+                </div>
+                <div class="card-body">
+                    {% if appointments %}
+                        <div class="list-group">
+                            {% for appointment in appointments %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <h6 class="mb-1">{{ appointment.service_name }}</h6>
+                                        <p class="mb-1 text-muted">
+                                             {{ appointment.appointment_date.strftime('%d.%m.%Y') }}
+                                             {{ appointment.appointment_time.strftime('%H:%M') }}
+                                        </p>
+                                        {% if appointment.doctor_name %}
+                                        <p class="mb-1">
+                                            <strong>Врач:</strong> {{ appointment.doctor_name }}
+                                            {% if appointment.doctor_position %}
+                                            ({{ appointment.doctor_position }})
+                                            {% endif %}
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge 
+                                            {% if appointment.status_name == 'Завершен' %}bg-success
+                                            {% elif appointment.status_name == 'Подтвержден' %}bg-primary
+                                            {% elif appointment.status_name == 'Запланирован' %}bg-warning
+                                            {% else %}bg-danger{% endif %}">
+                                            {{ appointment.status_name }}
+                                        </span>
+                                        <div class="mt-1">
+                                            <small class="text-muted">{{ "%.2f"|format(appointment.price) }} руб.</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+                                {% if appointment.diagnosis or appointment.treatment or appointment.doctor_notes %}
+                                <div class="mt-3 p-3 bg-light rounded">
+                                    <h6 class="border-bottom pb-2">🩺 Запись врача:</h6>
+                                    
+                                    {% if appointment.diagnosis %}
+                                    <div class="mb-2">
+                                        <strong>Диагноз:</strong>
+                                        <p class="mb-0">{{ appointment.diagnosis }}</p>
+                                    </div>
+                                    {% endif %}
+
+                                    {% if appointment.treatment %}
+                                    <div class="mb-2">
+                                        <strong>Лечение:</strong>
+                                        <p class="mb-0">{{ appointment.treatment }}</p>
+                                    </div>
+                                    {% endif %}
+
+                                    {% if appointment.doctor_notes %}
+                                    <div class="mb-2">
+                                        <strong>Примечания:</strong>
+                                        <p class="mb-0">{{ appointment.doctor_notes }}</p>
+                                    </div>
+                                    {% endif %}
+
+                                    {% if appointment.record_date %}
+                                    <small class="text-muted">
+                                        Запись создана: {{ appointment.record_date.strftime('%d.%m.%Y %H:%M') }}
+                                    </small>
+                                    {% endif %}
+                                </div>
+                                {% else %}
+                                <div class="mt-2">
+                                    <small class="text-muted">🩺 Записей врача нет</small>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <h5>У вас пока нет записей на прием</h5>
+                            <p class="text-muted">Запишитесь на прием, чтобы увидеть историю здесь</p>
+                            <a href="{{ url_for('Make_appointment') }}" class="btn btn-primary">
+                                 Записаться на прием
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    {% if appointments %}
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">{{ appointments|length }}</h5>
+                    <p class="card-text">Всего приемов</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-success">
+                        {{ appointments|selectattr('status_name', 'equalto', 'Завершен')|list|length }}
+                    </h5>
+                    <p class="card-text">Завершенных приемов</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">
+                        {{ appointments|selectattr('status_name', 'equalto', 'Подтвержден')|list|length }}
+                    </h5>
+                    <p class="card-text">Предстоящих приемов</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.list-group-item {
+    border-left: 4px solid #007bff;
+    margin-bottom: 10px;
+}
+.bg-light {
+    background-color: #f8f9fa !important;
+}
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+</style>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "Main.html" %}
+
+{% block title %}Врачи - {{ super() }}{% endblock %}
+{% block content %}
+<div class="service-detail">
+    <h1 align="centre">Личный кабинет</h1>
+
+    {% if current_user.is_authenticated %}
+    <div>
+        <div>
+            <div class="acc-razmer">
+                <img src="{{ url_for('static', filename='images/avatar.jpg')}}"
+                 width="250" height="275" alt="Отзыв">
+                <button class="change-avatar-btn">Сменить аватар</button>
+                    <form method="POST" action="{{ url_for('update_profile') }}">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Имя</label>
+                                <input type="text" class="form-control" name="first_name"
+                                       value="{{ current_user.first_name or '' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Фамилия</label>
+                                <input type="text" class="form-control" name="last_name"
+                                       value="{{ current_user.last_name or '' }}">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" value="{{ current_user.email }}" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Телефон</label>
+                            <input type="text" class="form-control" name="phone_number"
+                                   value="{{ current_user.phone_number or '' }}">
+                        </div>
+                        <div>
+                            <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+                            <div class="w-100">&#8203</div>
+                            <a href="/Make_appointment" class="btn btn-primary">Записаться на приём</a>
+                            <div class="w-100">&#8203</div>
+                            <a href="/my_appointments" class="btn btn-primary">Мои записи</a>
+                            <div class="w-100">&#8203</div>
+                            <a href="/patient_card" class="btn btn-primary">Моя мед.карта</a>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-warning text-center">
+        <p>Пожалуйста, <a href="{{ url_for('login') }}">войдите</a> в систему для доступа к личному кабинету.</p>
+    </div>
+    {% endif %}
+</div>
+
+
+{% endblock %}

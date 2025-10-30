@@ -1,0 +1,71 @@
+{% extends "Main.html" %}
+
+{% block title %}Панель врача - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">👨‍⚕️ Панель врача</h4>
+                </div>
+                <div class="card-body">
+                    <h5>Предстоящие приемы</h5>
+                    
+                    {% if appointments %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Дата</th>
+                                    <th>Время</th>
+                                    <th>Пациент</th>
+                                    <th>Услуга</th>
+                                    <th>Статус</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for app in appointments %}
+                                <tr>
+                                    <td>{{ app.appointment_date.strftime('%d.%m.%Y') }}</td>
+                                    <td>{{ app.appointment_time.strftime('%H:%M') }}</td>
+                                    <td>
+                                        {{ app.first_name or '' }} {{ app.last_name or '' }}
+                                        {% if app.phone_number %}
+                                        <br><small class="text-muted">{{ app.phone_number }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ app.service_name }}</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if app.status_name == 'Завершен' %}bg-success
+                                            {% elif app.status_name == 'Подтвержден' %}bg-primary
+                                            {% elif app.status_name == 'Запланирован' %}bg-warning
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ app.status_name }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('doctor_appointment_detail', appointment_id=app.id) }}" 
+                                           class="btn btn-sm btn-primary">
+                                            📝 Редактировать
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <p class="mb-0">На сегодня приемов нет.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

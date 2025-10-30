@@ -1,0 +1,129 @@
+{% extends "Main.html" %}
+
+{% block title %}Универсальный редактор БД{% endblock %}
+
+{% block content %}
+<h1>Универсальный редактор базы данных</h1>
+
+<!-- Выбор таблицы -->
+<div style="margin-bottom: 20px;">
+    <label for="table_select">Выберите таблицу:</label>
+    <select id="table_select" onchange="changeTable(this.value)">
+        <option value="">-- Выберите таблицу --</option>
+        {% for table in tables %}
+        <option value="{{ table }}" {% if selected_table == table %}selected{% endif %}>
+            {{ table }}
+        </option>
+        {% endfor %}
+    </select>
+</div>
+
+{% if selected_table %}
+<!-- Информация о таблице -->
+<div style="background: #f5f5f5; padding: 10px; margin-bottom: 20px;">
+    <h3>Таблица: {{ selected_table }}</h3>
+    <p>Колонки:
+        {% for col in columns %}
+        <span style="background: #e0e0e0; padding: 2px 5px; margin: 0 2px; border-radius: 3px;">
+            {{ col.name }} ({{ col.type }})
+        </span>
+        {% endfor %}
+    </p>
+</div>
+
+<!-- Добавление новой записи -->
+<h4>Добавить запись</h4>
+<form method="POST" action="{{ url_for('add_record', table_name=selected_table) }}">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+        {% for col in columns %}
+        {% if col.name != 'id' %}
+        <div>
+            <label>{{ col.name }}:</label>
+            {% if 'boolean' in col.type.lower() %}
+            <input type="checkbox" name="{{ col.name }}" value="true">
+            {% elif 'text' in col.type.lower() or 'varchar' in col.type.lower() %}
+            <input type="text" name="{{ col.name }}" placeholder="{{ col.type }}">
+            {% elif 'numeric' in col.type.lower() or 'decimal' in col.type.lower() %}
+            <input type="number" name="{{ col.name }}" step="0.01" placeholder="0.00">
+            {% elif 'integer' in col.type.lower() %}
+            <input type="number" name="{{ col.name }}" placeholder="0">
+            {% elif 'date' in col.type.lower() %}
+            <input type="date" name="{{ col.name }}">
+            {% elif 'time' in col.type.lower() %}
+            <input type="time" name="{{ col.name }}">
+            {% elif 'timestamp' in col.type.lower() %}
+            <input type="datetime-local" name="{{ col.name }}">
+            {% else %}
+            <input type="text" name="{{ col.name }}" placeholder="{{ col.type }}">
+            {% endif %}
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+    <button type="submit" style="margin-top: 10px;">Добавить</button>
+</form>
+
+<hr>
+
+<!-- Редактирование существующих записей -->
+<h4>Редактировать записи (всего: {{ records|length }})</h4>
+
+{% for record in records %}
+<div style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; background: white;">
+    <form method="POST" action="{{ url_for('update_record', table_name=selected_table, record_id=record.id) }}">
+        <strong>ID: {{ record.id }}</strong>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 10px;">
+            {% for col in columns %}
+            <div>
+                <label>{{ col.name }}:</label>
+                {% set value = record[col.name] %}
+
+                {% if col.name == 'id' %}
+                <input type="text" value="{{ value }}" disabled style="background: #f0f0f0;">
+                {% elif 'boolean' in col.type.lower() %}
+                <input type="checkbox" name="{{ col.name }}" {% if value %}checked{% endif %}>
+                {% elif 'text' in col.type.lower() %}
+                <textarea name="{{ col.name }}" rows="3">{{ value or '' }}</textarea>
+                {% elif 'varchar' in col.type.lower() %}
+                <input type="text" name="{{ col.name }}" value="{{ value or '' }}">
+                {% elif 'numeric' in col.type.lower() or 'decimal' in col.type.lower() %}
+                <input type="number" name="{{ col.name }}" value="{{ value }}" step="0.01">
+                {% elif 'integer' in col.type.lower() %}
+                <input type="number" name="{{ col.name }}" value="{{ value }}">
+                {% elif 'date' in col.type.lower() %}
+                <input type="date" name="{{ col.name }}" value="{{ value }}">
+                {% elif 'time' in col.type.lower() %}
+                <input type="time" name="{{ col.name }}" value="{{ value }}">
+                {% elif 'timestamp' in col.type.lower() %}
+                <input type="datetime-local" name="{{ col.name }}" value="{{ value.strftime('%Y-%m-%dT%H:%M') if value else '' }}">
+                {% else %}
+                <input type="text" name="{{ col.name }}" value="{{ value or '' }}">
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <div style="margin-top: 10px;">
+            <button type="submit">Сохранить</button>
+            <a href="{{ url_for('delete_record', table_name=selected_table, record_id=record.id) }}"
+               onclick="return confirm('Удалить эту запись?')"
+               style="color: red; margin-left: 10px;">
+                Удалить
+            </a>
+        </div>
+    </form>
+</div>
+{% endfor %}
+
+{% endif %}
+
+<script>
+function changeTable(tableName) {
+    if (tableName) {
+        window.location.href = "{{ url_for('edit_database') }}?table=" + tableName;
+    }
+}
+</script>
+
+{% endblock %}

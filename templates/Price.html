@@ -1,0 +1,43 @@
+{% extends "Main.html" %}
+
+{% block title %}Цены - {{ super() }}{% endblock %}
+
+{% block content %}
+
+<div class="service-detail">
+    <div>
+        <h1>Цена на услуги стоматологии в Перми</h1>
+        <h3>Полный прайс на стоматологические услуги ООО «Зубибиби».</h3>
+        {% if services %}
+            {% for service in services %}
+            <h6 class="card-link">
+                <div class="price-price">
+                    <div class="price-name">
+                        {{ service.name }}
+                    </div>
+                    <div class="price-num">
+                        {{ "%.2f"|format(service.price) }} ₽
+                    </div>
+                </div>
+            </h6>
+            {% endfor %}
+        {% else %}
+            <div class="alert alert-info">
+                На данный момент услуг нет.
+            </div>
+        {% endif %}
+        <div class="w-100">&#8203</div>
+        <div class="row">
+            <div class="col-12 text-center">
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                    <a href="/Make_appointment" class="btn btn-primary btn-lg px-5 me-md-3">
+                        <i class="bi bi-calendar-check me-2"></i>Записаться на консультацию
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "Main.html" %}
+
+{% block title %}Врачи - {{ super() }}{% endblock %}
+{% block content %}
+
+<div class="service-detail">
+    <div class="service-info">
+        <h1>Отзывы наших пациентов</h1>
+        <h3>Наши клиенты постоянно и с удовольствием делятся и своим хорошим опытом, и приятными эмоциями.</h3>
+    </div>
+    <div class="surgeon-container">
+        <div class="vrach-razmer">
+            <img src="{{ url_for('static', filename='images/review.jpg')}}"
+                 width="250" height="275" alt="Отзыв">
+        </div>
+        <div class="vrach-razmer">
+            <img src="{{ url_for('static', filename='images/review.jpg')}}"
+                 width="250" height="275" alt="Отзыв">
+        </div>
+        <div class="vrach-razmer">
+            <img src="{{ url_for('static', filename='images/review.jpg')}}"
+                 width="250" height="275" alt="Отзыв">
+        </div>
+
+    </div>
+    <div class="price-section">
+            <a href="/Price" class="btn-css">Оставить отзыв</a>
+    </div>
+
+    <div class="price-section">
+            <a href="/Price" class="btn-css">Записаться на консультацию</a>
+    </div>
+
+</div>
+
+
+{% endblock %}

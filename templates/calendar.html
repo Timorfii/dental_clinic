@@ -1,0 +1,273 @@
+{% extends "Main.html" %}
+
+{% block title %}Календарь записи - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">📅 Календарь записи</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Выбор услуги -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Выберите услугу:</label>
+                            <select id="serviceSelect" class="form-select">
+                                <option value="">-- Выберите услугу --</option>
+                                {% for service in services %}
+                                <option value="{{ service.id }}">
+                                    {{ service.name }} - {{ "%.2f"|format(service.price) }} руб.
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="alert alert-info mb-0">
+                                <small>🟢 Зеленый - время свободно<br>⚪ Серый - время занято</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Навигация по дням -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <button id="prevWeek" class="btn btn-outline-primary">
+                            ← Предыдущая неделя
+                        </button>
+                        <h5 id="currentWeek" class="mb-0 text-center"></h5>
+                        <button id="nextWeek" class="btn btn-outline-primary">
+                            Следующая неделя →
+                        </button>
+                    </div>
+
+                    <!-- Календарь -->
+                    <div id="calendar" class="row g-2">
+                        <!-- Здесь будет динамически генерироваться календарь -->
+                    </div>
+
+                    <!-- Модальное окно подтверждения -->
+                    <div class="modal fade" id="confirmModal" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Подтверждение записи</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Вы хотите записаться на <span id="modalDateTime" class="fw-bold"></span>?</p>
+                                    <p>Услуга: <span id="modalService" class="fw-bold"></span></p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                                    <button type="button" class="btn btn-primary" id="confirmBooking">Подтвердить запись</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentDate = new Date();
+let selectedDate = null;
+let selectedTime = null;
+let selectedService = null;
+
+// Инициализация календаря
+document.addEventListener('DOMContentLoaded', function() {
+    updateCalendar();
+    
+    // Обработчики навигации
+    document.getElementById('prevWeek').addEventListener('click', () => {
+        currentDate.setDate(currentDate.getDate() - 7);
+        updateCalendar();
+    });
+    
+    document.getElementById('nextWeek').addEventListener('click', () => {
+        currentDate.setDate(currentDate.getDate() + 7);
+        updateCalendar();
+    });
+    
+    // Обработчик выбора услуги
+    document.getElementById('serviceSelect').addEventListener('change', function() {
+        selectedService = this.value;
+        updateCalendar(); // Обновляем календарь при смене услуги
+    });
+});
+
+// Функция обновления календаря
+function updateCalendar() {
+    const calendarEl = document.getElementById('calendar');
+    const weekTitleEl = document.getElementById('currentWeek');
+    
+    // Очищаем календарь
+    calendarEl.innerHTML = '';
+    
+    // Обновляем заголовок недели
+    const startOfWeek = new Date(currentDate);
+    startOfWeek.setDate(currentDate.getDate() - currentDate.getDay() + 1); // Понедельник
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6); // Воскресенье
+    
+    weekTitleEl.textContent = `Неделя ${formatDate(startOfWeek)} - ${formatDate(endOfWeek)}`;
+    
+    // Генерируем дни недели
+    for (let i = 0; i < 7; i++) {
+        const dayDate = new Date(startOfWeek);
+        dayDate.setDate(startOfWeek.getDate() + i);
+        
+        const dayEl = document.createElement('div');
+        dayEl.className = 'col';
+        dayEl.innerHTML = `
+            <div class="card h-100">
+                <div class="card-header text-center ${isToday(dayDate) ? 'bg-light' : ''}">
+                    <strong>${getDayName(dayDate)}</strong><br>
+                    <small>${formatDate(dayDate)}</small>
+                </div>
+                <div class="card-body p-2" id="slots-${formatDate(dayDate)}">
+                    <div class="text-center">
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">Загрузка...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        calendarEl.appendChild(dayEl);
+        
+        // Загружаем слоты для этого дня
+        loadSlotsForDate(formatDate(dayDate));
+    }
+}
+
+// Загрузка слотов для конкретной даты
+function loadSlotsForDate(date) {
+    fetch(`/api/available_slots/${date}`)
+        .then(response => response.json())
+        .then(data => {
+            const slotsEl = document.getElementById(`slots-${date}`);
+            
+            if (data.error) {
+                slotsEl.innerHTML = `<div class="text-danger text-center">Ошибка загрузки</div>`;
+                return;
+            }
+            
+            let slotsHTML = '';
+            data.slots.forEach(slot => {
+                const isAvailable = slot.available && selectedService;
+                slotsHTML += `
+                    <button class="btn btn-sm w-100 mb-1 ${isAvailable ? 'btn-success' : 'btn-outline-secondary'}" 
+                            ${!isAvailable ? 'disabled' : ''}
+                            onclick="selectSlot('${date}', '${slot.time}')">
+                        ${slot.time}
+                    </button>
+                `;
+            });
+            
+            slotsEl.innerHTML = slotsHTML || '<div class="text-muted text-center">Нет доступного времени</div>';
+        })
+        .catch(error => {
+            console.error('Error loading slots:', error);
+        });
+}
+
+// Выбор слота
+function selectSlot(date, time) {
+    if (!selectedService) {
+        alert('Сначала выберите услугу');
+        return;
+    }
+    
+    selectedDate = date;
+    selectedTime = time;
+    
+    // Показываем модальное окно подтверждения
+    document.getElementById('modalDateTime').textContent = `${date} в ${time}`;
+    document.getElementById('modalService').textContent = 
+        document.getElementById('serviceSelect').selectedOptions[0].text;
+    
+    const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    modal.show();
+}
+
+// Подтверждение записи
+document.getElementById('confirmBooking').addEventListener('click', function() {
+    if (!selectedDate || !selectedTime || !selectedService) {
+        return;
+    }
+    
+    // Блокируем кнопку
+    this.disabled = true;
+    this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Запись...';
+    
+    // Отправляем запрос на сервер
+    fetch('/api/book_slot', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            service_id: selectedService,
+            date: selectedDate,
+            time: selectedTime
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            // Закрываем модальное окно
+            bootstrap.Modal.getInstance(document.getElementById('confirmModal')).hide();
+            // Обновляем календарь
+            updateCalendar();
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(error => {
+        alert('Ошибка при записи');
+        console.error('Error:', error);
+    })
+    .finally(() => {
+        // Разблокируем кнопку
+        this.disabled = false;
+        this.textContent = 'Подтвердить запись';
+    });
+});
+
+// Вспомогательные функции
+function formatDate(date) {
+    return date.toISOString().split('T')[0];
+}
+
+function getDayName(date) {
+    const days = ['ВС', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ'];
+    return days[date.getDay()];
+}
+
+function isToday(date) {
+    const today = new Date();
+    return date.toDateString() === today.toDateString();
+}
+</script>
+
+<style>
+.card {
+    transition: transform 0.2s;
+}
+.card:hover {
+    transform: translateY(-2px);
+}
+.btn-success {
+    font-weight: 500;
+}
+</style>
+{% endblock %}

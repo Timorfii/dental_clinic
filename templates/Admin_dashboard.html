@@ -1,0 +1,57 @@
+{% extends "Main.html" %}
+
+{% block title %}Админка - {{ super() }}{% endblock %}
+{% block content %}
+
+
+<div class="container text-center">
+    <div class="row">
+        <div class="col-6 col-sm-5">
+            <a class="btn btn-primary" href="/Admin/services" role="button">Редактировать услуги</a>
+        </div>
+
+        <div class="col-6 col-sm-5">
+            <a class="btn btn-primary" href="/Admin/clinics" role="button">Редактировать клиники</a>
+        </div>
+
+        <div class="w-100">&#8203</div>
+
+        <div class="col-6 col-sm-5">
+            <a class="btn btn-primary" href="/Admin/users" role="button">Редактировать пользователей</a>
+        </div>
+        <div class="col-6 col-sm-5">
+            <a class="btn btn-primary" href="/Admin/equipment" role="button">Редактировать оборудование</a>
+        </div>
+
+        <div class="w-100">&#8203</div>
+
+        <div class="col-6 col-sm-5">
+            <a class="btn btn-primary" href="/Admin/appointment_statuses" role="button">Редактировать статус записей</a>
+        </div>
+        <div class="col-6 col-sm-5">
+            <a class="btn btn-primary" href="/Admin/client_medical_records" role="button">Редактировать мед. карту</a>
+        </div>
+
+        <div class="w-100">&#8203</div>
+
+        <div class="col-6 col-sm-5">
+            <a class="btn btn-primary" href="/Admin/medications" role="button">Редактировать медикаменты</a>
+        </div>
+        <div class="col-6 col-sm-5">
+            <a class="btn btn-primary" href="/Admin/equipment_usage" role="button">Редактировать использование оборудования</a>
+        </div>
+        <div class="w-100">&#8203</div>
+        <div class="col-6 col-sm-5">
+            <a class="btn btn-primary" href="/Admin/prescriptions" role="button">Редактировать назначения врачей</a>
+        </div>
+        <div class="col-6 col-sm-5">
+            <a class="btn btn-primary" href="/Admin/appointments" role="button">Редактировать записи клиентов</a>
+        </div>
+        <div class="w-100">&#8203</div>
+    </div>
+</div>
+
+
+
+
+{% endblock %}

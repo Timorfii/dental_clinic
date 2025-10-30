@@ -1,0 +1,139 @@
+{% extends "Main.html" %}
+
+{% block title %}Запись на прием - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Запись на прием</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="appointmentForm">
+                        <div class="mb-3">
+                            <label class="form-label">Выберите услугу:</label>
+                            <select name="service_id" class="form-select" required>
+                                <option value="">-- Выберите услугу --</option>
+                                {% for service in services %}
+                                <option value="{{ service.id }}">
+                                    {{ service.name }} - {{ "%.2f"|format(service.price) }} руб.
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Выберите дату:</label>
+                            <input type="date" name="appointment_date" id="appointment_date"
+                                   class="form-control" min="{{ current_date }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Выберите время:</label>
+                            <select name="appointment_time" id="appointment_time" class="form-select" required>
+                                <option value="">-- Выберите время --</option>
+                                <option value="09:00">09:00</option>
+                                <option value="10:00">10:00</option>
+                                <option value="11:00">11:00</option>
+                                <option value="12:00">12:00</option>
+                                <option value="14:00">14:00</option>
+                                <option value="15:00">15:00</option>
+                                <option value="16:00">16:00</option>
+                                <option value="17:00">17:00</option>
+                                <option value="23:00">23:00</option>
+                            </select>
+                            <div class="form-text text-muted" id="timeHelp">
+                                Доступное время зависит от выбранной даты
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            Записаться
+                        </button>
+                    </form>
+
+                    <div class="mt-3 text-center text-muted small">
+                        <p>После записи наш администратор свяжется с вами для подтверждения времени</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.getElementById('appointment_date');
+    const timeSelect = document.getElementById('appointment_time');
+    const timeHelp = document.getElementById('timeHelp');
+    const currentDate = new Date().toISOString().split('T')[0];
+
+    // Устанавливаем минимальную дату - сегодня
+    dateInput.min = currentDate;
+
+    // Максимальная дата - 2 недели вперед
+    const maxDate = new Date();
+    maxDate.setDate(maxDate.getDate() + 14);
+    dateInput.max = maxDate.toISOString().split('T')[0];
+
+    // Функция для обновления доступного времени
+    function updateAvailableTimes() {
+        const selectedDate = dateInput.value;
+        const currentDateTime = new Date();
+        const currentTime = currentDateTime.toTimeString().substring(0, 5); // HH:MM
+
+        // Сбрасываем время
+        timeSelect.innerHTML = '<option value="">-- Выберите время --</option>';
+
+        // Все возможные временные слоты
+        const timeSlots = [
+            '09:00', '10:00', '11:00', '12:00',
+            '14:00', '15:00', '16:00', '17:00', '23:00'
+        ];
+
+        timeSlots.forEach(time => {
+            const option = document.createElement('option');
+            option.value = time;
+            option.textContent = time;
+
+            // Если выбрана сегодняшняя дата, скрываем прошедшее время
+            if (selectedDate === currentDate && time <= currentTime) {
+                option.disabled = true;
+                option.textContent += ' (прошло)';
+            }
+
+            timeSelect.appendChild(option);
+        });
+
+        // Обновляем подсказку
+        if (selectedDate === currentDate) {
+            timeHelp.textContent = `Сегодняшнее время. Текущее время: ${currentTime}`;
+        } else {
+            timeHelp.textContent = 'Все временные слоты доступны для записи';
+        }
+    }
+
+    // Обновляем время при изменении даты
+    dateInput.addEventListener('change', updateAvailableTimes);
+
+    // Инициализируем время при загрузке
+    updateAvailableTimes();
+
+    // Валидация формы перед отправкой
+    document.getElementById('appointmentForm').addEventListener('submit', function(e) {
+        const selectedDate = dateInput.value;
+        const selectedTime = timeSelect.value;
+        const currentDateTime = new Date();
+        const appointmentDateTime = new Date(`${selectedDate}T${selectedTime}`);
+
+        if (appointmentDateTime <= currentDateTime) {
+            e.preventDefault();
+            alert('Нельзя записаться на прошедшую дату или время! Пожалуйста, выберите другое время.');
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

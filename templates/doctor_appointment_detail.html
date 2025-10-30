@@ -1,0 +1,104 @@
+{% extends "Main.html" %}
+
+{% block title %}Прием пациента - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">📋 Прием пациента</h4>
+                        <a href="{{ url_for('doctor_dashboard') }}" class="btn btn-light btn-sm">
+                            ← Назад к списку
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Информация о приеме -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5>Информация о приеме</h5>
+                            <p><strong>Дата:</strong> {{ appointment.appointment_date.strftime('%d.%m.%Y') }}</p>
+                            <p><strong>Время:</strong> {{ appointment.appointment_time.strftime('%H:%M') }}</p>
+                            <p><strong>Услуга:</strong> {{ appointment.service_name }}</p>
+                            <p><strong>Статус:</strong> 
+                                <span class="badge 
+                                    {% if appointment.status_name == 'Завершен' %}bg-success
+                                    {% elif appointment.status_name == 'Подтвержден' %}bg-primary
+                                    {% elif appointment.status_name == 'Запланирован' %}bg-warning
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ appointment.status_name }}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Данные пациента</h5>
+                            <p><strong>Пациент:</strong> {{ appointment.first_name or '' }} {{ appointment.last_name or '' }}</p>
+                            {% if appointment.phone_number %}
+                            <p><strong>Телефон:</strong> {{ appointment.phone_number }}</p>
+                            {% endif %}
+                            {% if appointment.email %}
+                            <p><strong>Email:</strong> {{ appointment.email }}</p>
+                            {% endif %}
+                            {% if appointment.date_of_birth %}
+                            <p><strong>Дата рождения:</strong> {{ appointment.date_of_birth.strftime('%d.%m.%Y') }}</p>
+                            {% endif %}
+                            {% if appointment.policy_number %}
+                            <p><strong>Полис:</strong> {{ appointment.policy_number }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Форма редактирования -->
+                    <form method="POST" action="{{ url_for('doctor_update_appointment', appointment_id=appointment.id) }}">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Диагноз</strong></label>
+                                    <textarea name="diagnosis" class="form-control" rows="4" 
+                                              placeholder="Введите диагноз...">{{ appointment.diagnosis or '' }}</textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Лечение</strong></label>
+                                    <textarea name="treatment" class="form-control" rows="4" 
+                                              placeholder="Опишите проведенное лечение...">{{ appointment.treatment or '' }}</textarea>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Примечания врача</strong></label>
+                                    <textarea name="doctor_notes" class="form-control" rows="4" 
+                                              placeholder="Дополнительные заметки...">{{ appointment.doctor_notes or '' }}</textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Статус приема</strong></label>
+                                    <select name="status_id" class="form-select">
+                                        {% for status in statuses %}
+                                        <option value="{{ status.id }}" 
+                                                {% if appointment.status_id == status.id %}selected{% endif %}>
+                                            {{ status.name }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <button type="submit" class="btn btn-success w-100">
+                                        💾 Сохранить изменения
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

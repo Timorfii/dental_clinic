@@ -1,0 +1,49 @@
+{% extends "Main.html" %}
+
+{% block title %}Мои записи - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h3>Мои записи</h3>
+            
+            {% if appointments %}
+            <div class="list-group">
+                {% for app in appointments %}
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="mb-1">{{ app.service_name }}</h6>
+                            <p class="mb-1">
+                                {{ app.appointment_date.strftime('%d.%m.%Y') }}
+                                {{ app.appointment_time }}
+                            </p>
+                            <small class="text-muted">
+                                Статус: 
+                                {% if app.status_id == 1 %}🟡 Запланирован
+                                {% elif app.status_id == 2 %}🟢 Подтвержден
+                                {% elif app.status_id == 3 %}🔴 Отменен
+                                {% else %}⚫ Завершен{% endif %}
+                            </small>
+                        </div>
+                        <div class="text-end">
+                            <small class="text-muted">#{{ app.id }}</small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <h5>У вас пока нет записей</h5>
+                <p>Запишитесь на прием, чтобы увидеть его здесь</p>
+                <a href="{{ url_for('Make_appointment') }}" class="btn btn-primary">
+                    Записаться
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
