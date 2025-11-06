@@ -1,10 +1,26 @@
 {% extends "Main.html" %}
 
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+{% endblock %}
+
 {% block title %}Карточка пациента - {{ super() }}{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-
+    <div class="row mb-3">
+        <div class="col-12 text-end">
+            <button onclick="window.print()" class="btn btn-success">
+                🖨️ Печать карты пациента
+            </button>
+        </div>
+    </div>
+    <div class="print-only medical-header">
+        <h1>Медицинская карта пациента</h1>
+        <p>Стоматологическая клиника "Зубибиби"</p>
+        <p>Дата печати: {{ now().strftime('%d.%m.%Y %H:%M') }}</p>
+    </div>
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">

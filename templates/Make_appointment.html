@@ -25,6 +25,19 @@
                         </div>
 
                         <div class="mb-3">
+                            <label class="form-label">Выберите врача:</label>
+                            <select name="doctor_id" class="form-select" required>
+                                <option value="">-- Выберите врача --</option>
+                                {% for doctor in doctors %}
+                                <option value="{{ doctor.id }}">
+                                    {{ doctor.first_name }} {{ doctor.last_name }} - {{ doctor.position }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+
+                        <div class="mb-3">
                             <label class="form-label">Выберите дату:</label>
                             <input type="date" name="appointment_date" id="appointment_date"
                                    class="form-control" min="{{ current_date }}" required>

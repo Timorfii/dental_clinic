@@ -486,6 +486,7 @@ def Make_appointment():
     if request.method == 'POST':
 
         service_id = request.form.get('service_id')
+        doctor_id = request.form.get('doctor_id')
         appointment_date = request.form.get('appointment_date')
         appointment_time = request.form.get('appointment_time')
 
@@ -503,11 +504,13 @@ def Make_appointment():
                 return redirect(url_for('Make_appointment'))
 
             busy = db.session.execute(text("""
-                            SELECT id FROM appointments 
-                            WHERE appointment_date = :date 
-                            AND appointment_time = :time
-                            AND status_id != 3 
-                        """), {
+                SELECT id FROM appointments 
+                WHERE employee_id = :doctor_id
+                AND appointment_date = :date 
+                AND appointment_time = :time
+                AND status_id != 3 
+            """), {
+                'doctor_id': doctor_id,
                 'date': appointment_date,
                 'time': appointment_time
             }).fetchone()
@@ -516,19 +519,25 @@ def Make_appointment():
                 flash('Это время уже занято. Выберите другое время.', 'error')
                 return redirect(url_for('book_appointment'))
 
+            service = Service.query.get(service_id)
+            service_price = service.price if service else 0
+
             db.session.execute(text("""
                 INSERT INTO appointments 
-                (client_id, service_id, appointment_date, appointment_time, duration_minutes, status_id, price, created_at)
+                (client_id, employee_id, service_id, appointment_date, appointment_time, 
+                 duration_minutes, status_id, price, created_at)
                 VALUES 
-                (:client_id, :service_id, :appointment_date, :appointment_time, :duration, :status_id, :price, :created_at)
+                (:client_id, :employee_id, :service_id, :appointment_date, :appointment_time, 
+                 :duration, :status_id, :price, :created_at)
             """), {
                 'client_id': current_user.id,
+                'employee_id': doctor_id,
                 'service_id': service_id,
                 'appointment_date': appointment_date,
                 'appointment_time': appointment_time,
                 'duration': 60,
                 'status_id': 1,
-                'price': 0,
+                'price': service_price,
                 'created_at': datetime.now()
             })
 
@@ -541,7 +550,12 @@ def Make_appointment():
             db.session.rollback()
             flash('Ошибка при записи', 'error')
             return redirect(url_for('Make_appointment'))
-
+    doctors = db.session.execute(text("""
+        SELECT id, first_name, last_name, position 
+        FROM users 
+        WHERE role = 'doctor' AND is_active = true
+        ORDER BY first_name, last_name
+    """)).fetchall()
     services = Service.query.filter_by(is_active=True).all()
     current_datetime = datetime.now()
     available_times = []
@@ -554,6 +568,7 @@ def Make_appointment():
 
     return render_template('Make_appointment.html',
                            services=services,
+                           doctors=doctors,
                            current_date=current_datetime.strftime('%Y-%m-%d'),
                            current_time=current_datetime.strftime('%H:%M'),
                            available_times=available_times)
@@ -577,7 +592,6 @@ def user_appointments():
 @app.route('/doctor_dashboard')
 @login_required
 def doctor_dashboard():
-    """Главная страница врача"""
     if current_user.role not in ['doctor', 'employee', 'staff']:
         flash('Доступ запрещен', 'error')
         return redirect(url_for('index'))
@@ -607,7 +621,6 @@ def doctor_dashboard():
 @app.route('/doctor/appointment/<int:appointment_id>')
 @login_required
 def doctor_appointment_detail(appointment_id):
-    """Страница редактирования приема"""
     if current_user.role not in ['doctor', 'employee', 'staff']:
         flash('Доступ запрещен', 'error')
         return redirect(url_for('index'))
@@ -755,6 +768,86 @@ def patient_card():
     return render_template('patient_card.html',
                            patient_info=patient_info,
                            appointments=appointments)
+
+
+@app.route('/Admin/medications_storage')
+@admin_required
+def medications_storage():
+    medications = db.session.execute(text("""
+        SELECT * FROM medications ORDER BY name
+    """)).fetchall()
+
+    return render_template('Admins/medications_storage.html', medications=medications)
+
+
+@app.route('/Admin/add_medication', methods=['POST'])
+@admin_required
+def add_medication():
+    try:
+        name = request.form.get('name')
+        description = request.form.get('description', '')
+
+        if not name:
+            flash('Введите название препарата', 'error')
+            return redirect(url_for('medications_storage'))
+
+
+        existing = db.session.execute(text("""
+            SELECT id FROM medications WHERE name = :name
+        """), {'name': name}).fetchone()
+
+        if existing:
+            flash('Препарат с таким названием уже существует', 'error')
+            return redirect(url_for('medications_storage'))
+
+        db.session.execute(text("""
+            INSERT INTO medications (name, description)
+            VALUES (:name, :description)
+        """), {
+            'name': name,
+            'description': description
+        })
+
+        db.session.commit()
+        flash('Препарат успешно добавлен на склад', 'success')
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Ошибка при добавлении препарата: {str(e)}', 'error')
+
+    return redirect(url_for('medications_storage'))
+
+
+@app.route('/Admin/delete_medication/<int:medication_id>', methods=['POST'])
+@admin_required
+def delete_medication(medication_id):
+
+    try:
+        used_in_prescriptions = db.session.execute(text("""
+            SELECT id FROM prescriptions WHERE medication_id = :medication_id
+        """), {'medication_id': medication_id}).fetchone()
+
+        if used_in_prescriptions:
+            flash('Нельзя удалить препарат, так как он используется в назначениях врачей', 'error')
+            return redirect(url_for('medications_storage'))
+
+        db.session.execute(text("""
+            DELETE FROM medications WHERE id = :medication_id
+        """), {'medication_id': medication_id})
+
+        db.session.commit()
+        flash('Препарат успешно удален', 'success')
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Ошибка при удалении препарата: {str(e)}', 'error')
+
+    return redirect(url_for('medications_storage'))
+
+
+
+
+
 
 
 

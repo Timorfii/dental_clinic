@@ -1,0 +1,78 @@
+{% extends "Main.html" %}
+
+{% block title %}Склад препаратов - {{ super() }}{% endblock %}
+{% block content %}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">Склад препаратов</h4>
+                    </div>
+                </div>
+                <div class="card-body">
+
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Добавить новый препарат</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" action="{{ url_for('add_medication') }}" class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Название препарата</label>
+                                    <input type="text" name="name" class="form-control" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Описание</label>
+                                    <input type="text" name="description" class="form-control" placeholder="Краткое описание">
+                                </div>
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-success">Добавить препарат</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Название</th>
+                                    <th>Описание</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for medication in medications %}
+                                <tr>
+                                    <td><strong>{{ medication.id }}</strong></td>
+                                    <td>{{ medication.name }}</td>
+                                    <td>{{ medication.description or '-' }}</td>
+                                    <td>
+                                        <form method="POST" action="{{ url_for('delete_medication', medication_id=medication.id) }}" 
+                                              onsubmit="return confirm('Удалить препарат «{{ medication.name }}»?')" class="d-inline">
+                                            <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {% if not medications %}
+                    <div class="alert alert-info text-center">
+                        <h5>На складе пока нет препаратов</h5>
+                        <p class="mb-0">Добавьте первый препарат используя форму выше</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
