@@ -140,19 +140,16 @@ class DynamicTable:
 
         table = meta.tables[table_name]
 
-        # Создаем динамический класс
         attrs = {'__table__': table}
         model = type(table_name, (db.Model,), attrs)
         return model
 
 
-# Список всех таблиц в базе данных
 def get_all_tables():
     inspector = inspect(db.engine)
     return inspector.get_table_names()
 
 
-# Получить данные таблицы
 def get_table_data(table_name):
     model = DynamicTable.create_model(table_name)
     if model:
@@ -160,7 +157,6 @@ def get_table_data(table_name):
     return []
 
 
-# Получить информацию о колонках таблицы
 def get_table_columns(table_name):
     inspector = inspect(db.engine)
     columns = inspector.get_columns(table_name)
@@ -441,7 +437,7 @@ def admin_update_record(table_name, record_id):
 
                 elif field_name == 'is_active' or field_name.endswith('_active'):
                     updates.append(f"{field_name} = :{field_name}")
-                    params[field_name] = field_name in request.form  # True/False
+                    params[field_name] = field_name in request.form
                     continue
 
                 elif ('integer' in column_types.get(field_name, '').lower() and
@@ -458,7 +454,7 @@ def admin_update_record(table_name, record_id):
                     except (ValueError, TypeError):
                         field_value = None
 
-                # Для дат
+
                 elif 'date' in column_types.get(field_name, '').lower():
                     if field_value in ['', 'None']:
                         field_value = None
@@ -484,13 +480,12 @@ def admin_update_record(table_name, record_id):
 @login_required
 def Make_appointment():
     if request.method == 'POST':
-
         service_id = request.form.get('service_id')
         doctor_id = request.form.get('doctor_id')
         appointment_date = request.form.get('appointment_date')
         appointment_time = request.form.get('appointment_time')
 
-        if not all([service_id, appointment_date, appointment_time]):
+        if not all([service_id, doctor_id, appointment_date, appointment_time]):
             flash('Заполните все поля', 'error')
             return redirect(url_for('Make_appointment'))
 
@@ -502,6 +497,7 @@ def Make_appointment():
             if appointment_datetime <= current_datetime:
                 flash('Нельзя записаться на прошедшую дату или время!', 'error')
                 return redirect(url_for('Make_appointment'))
+
 
             busy = db.session.execute(text("""
                 SELECT id FROM appointments 
@@ -517,10 +513,11 @@ def Make_appointment():
 
             if busy:
                 flash('Это время уже занято. Выберите другое время.', 'error')
-                return redirect(url_for('book_appointment'))
+                return redirect(url_for('Make_appointment'))
 
             service = Service.query.get(service_id)
             service_price = service.price if service else 0
+
 
             db.session.execute(text("""
                 INSERT INTO appointments 
@@ -542,7 +539,6 @@ def Make_appointment():
             })
 
             db.session.commit()
-
             flash('Запись успешно создана! Мы свяжемся с вами для подтверждения.', 'success')
             return redirect(url_for('user_appointments'))
 
@@ -550,29 +546,56 @@ def Make_appointment():
             db.session.rollback()
             flash('Ошибка при записи', 'error')
             return redirect(url_for('Make_appointment'))
+
+
     doctors = db.session.execute(text("""
-        SELECT id, first_name, last_name, position 
-        FROM users 
-        WHERE role = 'doctor' AND is_active = true
-        ORDER BY first_name, last_name
-    """)).fetchall()
+            SELECT id, first_name, last_name, position 
+            FROM users 
+            WHERE role = 'doctor' AND is_active = true
+            ORDER BY first_name, last_name
+        """)).fetchall()
+
     services = Service.query.filter_by(is_active=True).all()
     current_datetime = datetime.now()
-    available_times = []
-    time_slots = ['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00']
 
-    for time_slot in time_slots:
-        slot_time = datetime.strptime(time_slot, '%H:%M').time()
-        if current_datetime.time() < slot_time or current_datetime.date() < datetime.now().date():
-            available_times.append(time_slot)
+
+    selected_doctor = request.args.get('doctor_id', '')
+    selected_date = request.args.get('appointment_date', '')
+
+    all_slots = []
+
+
+    if selected_doctor and selected_date:
+
+        time_slots = ['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00','23:00']
+
+
+        busy_slots = db.session.execute(text("""
+                SELECT TO_CHAR(appointment_time, 'HH24:MI') as time
+                FROM appointments 
+                WHERE employee_id = :doctor_id 
+                AND appointment_date = :date
+                AND status_id != 3
+            """), {
+            'doctor_id': selected_doctor,
+            'date': selected_date
+        }).fetchall()
+
+        busy_times = [slot.time for slot in busy_slots]
+
+        for slot in time_slots:
+            all_slots.append({
+                'time': slot,
+                'available': slot not in busy_times
+            })
 
     return render_template('Make_appointment.html',
                            services=services,
                            doctors=doctors,
                            current_date=current_datetime.strftime('%Y-%m-%d'),
-                           current_time=current_datetime.strftime('%H:%M'),
-                           available_times=available_times)
-
+                           selected_doctor=selected_doctor,
+                           selected_date=selected_date,
+                           all_slots=all_slots)
 
 @app.route('/my_appointments')
 @login_required
@@ -734,7 +757,7 @@ def inject_statuses():
 @app.route('/patient_card')
 @login_required
 def patient_card():
-    """Карта пациента"""
+
     patient_info = db.session.execute(text("""
         SELECT id, first_name, last_name, email, phone_number, 
                date_of_birth, policy_number
@@ -786,11 +809,11 @@ def add_medication():
     try:
         name = request.form.get('name')
         description = request.form.get('description', '')
+        quantity = request.form.get('quantity', 0)
 
         if not name:
             flash('Введите название препарата', 'error')
             return redirect(url_for('medications_storage'))
-
 
         existing = db.session.execute(text("""
             SELECT id FROM medications WHERE name = :name
@@ -801,11 +824,12 @@ def add_medication():
             return redirect(url_for('medications_storage'))
 
         db.session.execute(text("""
-            INSERT INTO medications (name, description)
-            VALUES (:name, :description)
+            INSERT INTO medications (name, description, quantity)
+            VALUES (:name, :description, :quantity)
         """), {
             'name': name,
-            'description': description
+            'description': description,
+            'quantity': int(quantity)
         })
 
         db.session.commit()
@@ -818,10 +842,35 @@ def add_medication():
     return redirect(url_for('medications_storage'))
 
 
+@app.route('/Admin/update_medication_quantity/<int:medication_id>', methods=['POST'])
+@admin_required
+def update_medication_quantity(medication_id):
+
+    try:
+        quantity = request.form.get('quantity', 0)
+
+        db.session.execute(text("""
+            UPDATE medications 
+            SET quantity = :quantity 
+            WHERE id = :medication_id
+        """), {
+            'quantity': int(quantity),
+            'medication_id': medication_id
+        })
+
+        db.session.commit()
+        flash('Количество препарата обновлено', 'success')
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Ошибка при обновлении количества: {str(e)}', 'error')
+
+    return redirect(url_for('medications_storage'))
+
+
 @app.route('/Admin/delete_medication/<int:medication_id>', methods=['POST'])
 @admin_required
 def delete_medication(medication_id):
-
     try:
         used_in_prescriptions = db.session.execute(text("""
             SELECT id FROM prescriptions WHERE medication_id = :medication_id
@@ -845,8 +894,147 @@ def delete_medication(medication_id):
     return redirect(url_for('medications_storage'))
 
 
+@app.route('/Admin/schedule')
+@admin_required
+def admin_schedule():
+
+    doctor_id = request.args.get('doctor_id')
+    date = request.args.get('date')
+
+    doctors = db.session.execute(text("""
+        SELECT id, first_name, last_name, position 
+        FROM users 
+        WHERE role = 'doctor' AND is_active = true
+        ORDER BY first_name, last_name
+    """)).fetchall()
 
 
+    schedule = []
+    selected_doctor_name = None
+
+    if doctor_id and date:
+
+        doctor = db.session.execute(text("""
+            SELECT first_name, last_name FROM users WHERE id = :doctor_id
+        """), {'doctor_id': doctor_id}).fetchone()
+        if doctor:
+            selected_doctor_name = f"{doctor.first_name} {doctor.last_name}"
+
+        time_slots = [
+            '09:00', '10:00', '11:00', '12:00',
+            '14:00', '15:00', '16:00', '17:00','23:00'
+        ]
+
+        for time_slot in time_slots:
+
+            appointment = db.session.execute(text("""
+                SELECT 
+                    a.id as appointment_id,
+                    a.price,
+
+                    -- Данные пациента
+                    pat.first_name as patient_first_name,
+                    pat.last_name as patient_last_name,
+                    pat.phone_number as patient_phone,
+                    pat.email as patient_email,
+
+                    -- Услуга
+                    s.name as service_name,
+
+                    -- Статус
+                    ast.name as status_name
+
+                FROM appointments a
+                LEFT JOIN users pat ON a.client_id = pat.id
+                LEFT JOIN services s ON a.service_id = s.id
+                LEFT JOIN appointment_statuses ast ON a.status_id = ast.id
+                WHERE a.employee_id = :doctor_id 
+                AND a.appointment_date = :date
+                AND a.appointment_time = :time
+            """), {
+                'doctor_id': doctor_id,
+                'date': date,
+                'time': time_slot
+            }).fetchone()
+
+            if appointment:
+                schedule.append({
+                    'time': time_slot,
+                    'appointment_id': appointment.appointment_id,
+                    'patient_name': f"{appointment.patient_first_name or ''} {appointment.patient_last_name or ''}".strip(),
+                    'patient_phone': appointment.patient_phone,
+                    'patient_email': appointment.patient_email,
+                    'service_name': appointment.service_name,
+                    'status_name': appointment.status_name,
+                    'price': float(appointment.price) if appointment.price else None
+                })
+            else:
+
+                schedule.append({
+                    'time': time_slot,
+                    'appointment_id': None,
+                    'patient_name': None,
+                    'patient_phone': None,
+                    'patient_email': None,
+                    'service_name': None,
+                    'status_name': None,
+                    'price': None
+                })
+
+    return render_template('Admins/admin_schedule.html',
+                           schedule=schedule,
+                           doctors=doctors,
+                           selected_doctor=doctor_id,
+                           selected_date=date,
+                           selected_doctor_name=selected_doctor_name)
+
+
+
+@app.route('/api/available_slots')
+def get_available_slots():
+
+    try:
+        doctor_id = request.args.get('doctor_id')
+        date = request.args.get('date')
+
+        if not doctor_id or not date:
+            return jsonify({'error': 'Не указаны doctor_id или date'}), 400
+
+
+        all_slots = ['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00']
+
+
+        busy_slots = db.session.execute(text("""
+            SELECT TO_CHAR(appointment_time, 'HH24:MI') as time
+            FROM appointments 
+            WHERE employee_id = :doctor_id 
+            AND appointment_date = :date
+            AND status_id != 3  -- кроме отмененных
+        """), {
+            'doctor_id': doctor_id,
+            'date': date
+        }).fetchall()
+
+        busy_times = [slot.time for slot in busy_slots]
+
+
+        available_slots = []
+        for slot in all_slots:
+            available_slots.append({
+                'time': slot,
+                'available': slot not in busy_times
+            })
+
+        return jsonify({
+            'success': True,
+            'slots': available_slots,
+            'date': date,
+            'doctor_id': doctor_id
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting available slots: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 

@@ -1,0 +1,141 @@
+{% extends "Main.html" %}
+
+{% block title %}Расписание врачей - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"> Расписание врачей</h4>
+                </div>
+                <div class="card-body">
+
+
+                    <form method="GET" action="{{ url_for('admin_schedule') }}" class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label"><strong>Выберите врача:</strong></label>
+                            <select name="doctor_id" class="form-select" required>
+                                <option value="">-- Выберите врача --</option>
+                                {% for doctor in doctors %}
+                                <option value="{{ doctor.id }}"
+                                    {% if selected_doctor == doctor.id %}selected{% endif %}>
+                                    {{ doctor.first_name }} {{ doctor.last_name }} - {{ doctor.position }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><strong>Выберите дату:</strong></label>
+                            <input type="date" name="date" class="form-control" value="{{ selected_date }}" required>
+                        </div>
+                        <div class="col-12 mt-3">
+                            <button type="submit" class="btn btn-success"> Показать расписание</button>
+                        </div>
+                    </form>
+
+                    {% if selected_doctor and selected_date %}
+
+                    <div class="alert alert-info">
+                        <strong>
+                            Расписание врача: {{ selected_doctor_name }}
+                            на {{ selected_date }}
+                        </strong>
+                        | Всего временных слотов: {{ schedule|length }}
+                        | Свободно: {{ schedule|selectattr('patient_name', 'none')|list|length }}
+                        | Занято: {{ schedule|rejectattr('patient_name', 'none')|list|length }}
+                    </div>
+
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Время</th>
+                                    <th>Пациент</th>
+                                    <th>Телефон</th>
+                                    <th>Услуга</th>
+                                    <th>Статус</th>
+                                    <th>Цена</th>
+                                    <th>ID записи</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for slot in schedule %}
+                                <tr class="{% if slot.patient_name %}table-warning{% else %}table-success{% endif %}">
+                                    <td><strong>{{ slot.time }}</strong></td>
+                                    <td>
+                                        {% if slot.patient_name %}
+                                            {{ slot.patient_name }}
+                                            {% if slot.patient_email %}
+                                            <br><small class="text-muted">{{ slot.patient_email }}</small>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">Свободно</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if slot.patient_phone %}
+                                            {{ slot.patient_phone }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if slot.service_name %}
+                                            {{ slot.service_name }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if slot.status_name %}
+                                        <span class="badge
+                                            {% if slot.status_name == 'Завершен' %}bg-success
+                                            {% elif slot.status_name == 'Подтвержден' %}bg-primary
+                                            {% elif slot.status_name == 'Запланирован' %}bg-warning
+                                            {% elif slot.status_name == 'Отменен' %}bg-danger
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ slot.status_name }}
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-light text-dark">Свободно</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if slot.price %}
+                                        {{ "%.2f"|format(slot.price) }} руб.
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if slot.appointment_id %}
+                                        <strong>#{{ slot.appointment_id }}</strong>
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% elif selected_doctor or selected_date %}
+                    <div class="alert alert-warning text-center">
+                        <h5>Выберите врача и дату для просмотра расписания</h5>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info text-center">
+                        <h5>Выберите врача и дату для просмотра расписания</h5>
+                        <p class="mb-0">Вы увидите все возможные временные слоты, даже свободные</p>
+                    </div>
+                    {% endif %}
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

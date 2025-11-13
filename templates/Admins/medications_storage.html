@@ -24,12 +24,17 @@
                                     <label class="form-label">Название препарата</label>
                                     <input type="text" name="name" class="form-control" required>
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Описание</label>
-                                    <input type="text" name="description" class="form-control" placeholder="Краткое описание">
+                                <div class="col-md-4">
+                                    <label class="form-label">Количество</label>
+                                    <input type="number" name="quantity" class="form-control" value="0" min="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label"> </label>
+                                    <button type="submit" class="btn btn-success w-100">Добавить</button>
                                 </div>
                                 <div class="col-12">
-                                    <button type="submit" class="btn btn-success">Добавить препарат</button>
+                                    <label class="form-label">Описание</label>
+                                    <input type="text" name="description" class="form-control" placeholder="Описание (необязательно)">
                                 </div>
                             </form>
                         </div>
@@ -42,6 +47,7 @@
                                     <th>ID</th>
                                     <th>Название</th>
                                     <th>Описание</th>
+                                    <th>Количество</th>
                                     <th>Действия</th>
                                 </tr>
                             </thead>
@@ -52,8 +58,18 @@
                                     <td>{{ medication.name }}</td>
                                     <td>{{ medication.description or '-' }}</td>
                                     <td>
-                                        <form method="POST" action="{{ url_for('delete_medication', medication_id=medication.id) }}" 
-                                              onsubmit="return confirm('Удалить препарат «{{ medication.name }}»?')" class="d-inline">
+                                        <input type="number" name="quantity" value="{{ medication.quantity }}"
+                                               class="form-control form-control-sm" min="0" style="width: 100px;"
+                                               form="quantity_form_{{ medication.id }}">
+                                    </td>
+                                    <td>
+                                        <form method="POST" action="{{ url_for('update_medication_quantity', medication_id=medication.id) }}"
+                                              id="quantity_form_{{ medication.id }}" class="d-inline" >
+                                        </form>
+                                        <button type="submit" form="quantity_form_{{ medication.id }}" class="btn btn-primary btn-sm" >Сохранить</button>
+
+                                        <form method="POST" action="{{ url_for('delete_medication', medication_id=medication.id) }}"
+                                              onsubmit="return confirm('Удалить препарат «{{ medication.name }}»?')" class="d-inline ms-1">
                                             <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
                                         </form>
                                     </td>
