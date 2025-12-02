@@ -38,9 +38,9 @@
             <div class="alert alert-info">
                 <h5>У вас пока нет записей</h5>
                 <p>Запишитесь на прием, чтобы увидеть его здесь</p>
-                <a href="{{ url_for('Make_appointment') }}" class="btn btn-primary">
-                    Записаться
-                </a>
+                    <a href="{{ url_for('Make_appointment', clinic_slug=current_clinic.slug) }}" class="btn btn-primary">
+                        Записаться
+                    </a>
             </div>
             {% endif %}
         </div>

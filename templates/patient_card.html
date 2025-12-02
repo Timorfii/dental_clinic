@@ -139,9 +139,9 @@
                         <div class="text-center py-4">
                             <h5>У вас пока нет записей на прием</h5>
                             <p class="text-muted">Запишитесь на прием, чтобы увидеть историю здесь</p>
-                            <a href="{{ url_for('Make_appointment') }}" class="btn btn-primary">
-                                 Записаться на прием
-                            </a>
+                                <a href="{{ url_for('Make_appointment', clinic_slug=current_clinic.slug) }}" class="btn btn-primary">
+                                    Записаться на прием
+                                </a>
                         </div>
                     {% endif %}
                 </div>
@@ -149,7 +149,7 @@
         </div>
     </div>
 
-    <!-- Статистика -->
+
     {% if appointments %}
     <div class="row mt-4">
         <div class="col-md-4">

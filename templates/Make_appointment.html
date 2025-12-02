@@ -8,12 +8,12 @@
         <div class="col-md-8">
             <div class="card">
                 <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">Запись на прием</h4>
+                    <h4 class="mb-0">Запись на прием - {{current_clinic.name}}</h4>
                 </div>
                 <div class="card-body">
 
 
-                    <form method="GET" action="{{ url_for('Make_appointment') }}" class="row g-3 mb-4">
+                    <form method="GET" action="{{ url_for('Make_appointment', clinic_slug=current_clinic.slug) }}" class="row g-3 mb-4">
                         <div class="col-md-6">
                             <label class="form-label"><strong>Выберите врача:</strong></label>
                             <select name="doctor_id" class="form-select" required>
@@ -43,7 +43,7 @@
                     <hr>
 
 
-                    <form method="POST" action="{{ url_for('Make_appointment') }}">
+                    <form method="POST" action="{{ url_for('Make_appointment', clinic_slug=current_clinic.slug) }}">
                         <input type="hidden" name="doctor_id" value="{{ selected_doctor }}">
                         <input type="hidden" name="appointment_date" value="{{ selected_date }}">
 

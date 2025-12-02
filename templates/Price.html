@@ -6,7 +6,7 @@
 
 <div class="service-detail">
     <div>
-        <h1>Цена на услуги стоматологии в Перми</h1>
+        <h1>Цены в {{current_clinic.name}}</h1>
         <h3>Полный прайс на стоматологические услуги ООО «Зубибиби».</h3>
         {% if services %}
             {% for service in services %}
@@ -30,12 +30,12 @@
         <div class="row">
             <div class="col-12 text-center">
                 <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                    <a href="/Make_appointment" class="btn btn-primary btn-lg px-5 me-md-3">
-                        <i class="bi bi-calendar-check me-2"></i>Записаться на консультацию
+                    <a href="{{ url_for('Make_appointment', clinic_slug=current_clinic.slug) }}" class="btn btn-primary btn-lg px-5 me-md-3">
+                    <i class="bi bi-calendar-check me-2"></i>Записаться на консультацию
                     </a>
                 </div>
             </div>
-        </div>
+    </div>
     </div>
 </div>
 

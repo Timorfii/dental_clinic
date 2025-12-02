@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="services-page">
-    <h1>Наши услуги</h1>
+    <h1>Наши услуги - {{current_clinic.name}}</h1>
     
     <div class="service-category">
         <h2>Все виды стоматологических услуг</h2>
@@ -29,7 +29,7 @@
                             {% endif %}
                         </div>
                         <div class="card-footer bg-transparent">
-                            <a href="/Make_appointment" class="btn btn-primary w-100">Записаться на приём</a>
+                            <a href="{{ url_for('Make_appointment', clinic_slug=current_clinic.slug) }}" class="btn btn-primary w-100">Записаться на приём</a>
                         </div>
                     </div>
                 </div>

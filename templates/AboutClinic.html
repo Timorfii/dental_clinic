@@ -38,12 +38,10 @@
     <div class="row">
         <div class="col-12 text-center">
             <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                <a href="/Make_appointment" class="btn btn-primary btn-lg px-5 me-md-3">
-                    <i class="bi bi-calendar-check me-2"></i>Записаться на консультацию
-                </a>
-                <a href="/Services" class="btn btn-outline-primary btn-lg px-5">
-                    <i class="bi bi-list-ul me-2"></i>Наши услуги
-                </a>
+                <a href="{{ url_for('Make_appointment', clinic_slug=current_clinic.slug) }}" class="btn btn-primary btn-lg px-5 me-md-3">
+                    <i class="bi bi-calendar-check me-2"></i>Записаться на консультацию</a>
+                <a href="{{ url_for('services', clinic_slug=current_clinic.slug) }}" class="btn btn-outline-primary btn-lg px-5">
+                    <i class="bi bi-list-ul me-2"></i>Наши услуги</a>
             </div>
         </div>
     </div>

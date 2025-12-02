@@ -21,6 +21,14 @@
                             <input type="password" class="form-control" id="password" name="password" required>
                         </div>
                         <button type="submit" class="btn btn-primary w-100">Войти</button>
+                        <div class="mb-3">
+                            <label for="clinic_slug" class="form-label">Клиника:</label>
+                            <select class="form-select" id="clinic_slug" name="clinic_slug" required>
+                                {% for clinic in clinics %}
+                                    <option value="{{ clinic.slug }}">{{ clinic.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </form>
                     <div class="mt-3 text-center">
                         <p>Нет аккаунта? <a href="{{ url_for('register') }}">Зарегистрируйтесь</a></p>

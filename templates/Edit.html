@@ -5,7 +5,7 @@
 {% block content %}
 <h1>Универсальный редактор базы данных</h1>
 
-<!-- Выбор таблицы -->
+
 <div style="margin-bottom: 20px;">
     <label for="table_select">Выберите таблицу:</label>
     <select id="table_select" onchange="changeTable(this.value)">
@@ -19,7 +19,6 @@
 </div>
 
 {% if selected_table %}
-<!-- Информация о таблице -->
 <div style="background: #f5f5f5; padding: 10px; margin-bottom: 20px;">
     <h3>Таблица: {{ selected_table }}</h3>
     <p>Колонки:
@@ -31,7 +30,6 @@
     </p>
 </div>
 
-<!-- Добавление новой записи -->
 <h4>Добавить запись</h4>
 <form method="POST" action="{{ url_for('add_record', table_name=selected_table) }}">
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
@@ -65,7 +63,6 @@
 
 <hr>
 
-<!-- Редактирование существующих записей -->
 <h4>Редактировать записи (всего: {{ records|length }})</h4>
 
 {% for record in records %}

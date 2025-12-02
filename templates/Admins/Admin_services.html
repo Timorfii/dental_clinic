@@ -3,7 +3,22 @@
 
 {% block title %}Админка - {{ super() }}{% endblock %}
 {% block content %}
-
+<div class="container mb-3">
+    <div class="alert alert-info">
+        <strong>Редактирование таблицы:</strong> {{ table_name }}
+        {% if clinic_id %}
+        <span class="ms-3">
+            <strong>Клиника ID:</strong> {{ clinic_id }}
+            {% if table_name in ['services', 'appointments', 'users', 'medications', 'equipment'] %}
+            <span class="badge bg-warning ms-1">Фильтр по клинике</span>
+            {% endif %}
+        </span>
+        {% endif %}
+        <a href="{{ url_for('admin_dashboard') }}" class="float-end btn btn-sm btn-outline-primary">
+            ← Назад к выбору клиники
+        </a>
+    </div>
+</div>
 
 
 <div class="container">
@@ -60,7 +75,7 @@
             <tbody>
                 {% for row in data %}
                 <tr>
-                    <form method="POST" action="/Admins/Admin_services/update/{{ table_name }}/{{ row.id }}">
+                    <form method="POST" action="/Admin/update/{{ table_name }}/{{ row.id }}">
                     {% for column in columns %}
                     <td>
                         {% if column == 'id' %}
@@ -90,10 +105,10 @@
                         <button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
                         </form>
 
-                        <form method="POST" action="/Admin/delete/{{ table_name }}/{{ row.id }}"
-                              onsubmit="return confirm('Удалить запись?')" class="d-inline mt-1">
-                            <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
-                        </form>
+                            <form method="POST" action="/Admin/delete/{{ table_name }}/{{ row.id }}"
+                              onsubmit="return confirm('Удалить запись?')" class="d-inline ms-1">
+                                <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                            </form>
                     </td>
                 </tr>
                 {% endfor %}

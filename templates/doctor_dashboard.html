@@ -48,7 +48,7 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <a href="{{ url_for('doctor_appointment_detail', appointment_id=app.id) }}" 
+                                        <a href="{{ url_for('doctor_appointment_detail', clinic_slug=current_clinic.slug, appointment_id=app.id) }}"
                                            class="btn btn-sm btn-primary">
                                             📝 Редактировать
                                         </a>

@@ -10,14 +10,13 @@
                 <div class="card-header bg-primary text-white">
                     <div class="d-flex justify-content-between align-items-center">
                         <h4 class="mb-0">📋 Прием пациента</h4>
-                        <a href="{{ url_for('doctor_dashboard') }}" class="btn btn-light btn-sm">
-                            ← Назад к списку
-                        </a>
+                            <a href="{{ url_for('doctor_dashboard', clinic_slug=current_clinic.slug) }}" class="btn btn-light btn-sm">
+                                ← Назад к списку
+                            </a>
                     </div>
                 </div>
                 
                 <div class="card-body">
-                    <!-- Информация о приеме -->
                     <div class="row mb-4">
                         <div class="col-md-6">
                             <h5>Информация о приеме</h5>
@@ -52,8 +51,7 @@
                         </div>
                     </div>
 
-                    <!-- Форма редактирования -->
-                    <form method="POST" action="{{ url_for('doctor_update_appointment', appointment_id=appointment.id) }}">
+                    <form method="POST" action="{{ url_for('doctor_update_appointment', clinic_slug=current_clinic.slug, appointment_id=appointment.id) }}">
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
