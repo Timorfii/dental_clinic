@@ -6,15 +6,17 @@
 <div class="container mt-4">
     <div class="row">
         <div class="col-12">
-            <div class="card">
                 <div class="card-header bg-info text-white">
                     <div class="d-flex justify-content-between align-items-center">
                         <h4 class="mb-0">Склад препаратов</h4>
+                        <span class="badge bg-light text-dark">
+                            Клиника: {{ session.get('admin_clinic_id', 1) }}
+                        </span>
                     </div>
                 </div>
                 <div class="card-body">
 
-                    <div class="card mb-4">
+<div class="card mb-4">
                         <div class="card-header">
                             <h5 class="mb-0">Добавить новый препарат</h5>
                         </div>
@@ -29,7 +31,7 @@
                                     <input type="number" name="quantity" class="form-control" value="0" min="0">
                                 </div>
                                 <div class="col-md-2">
-                                    <label class="form-label"> </label>
+                                    <label class="form-label"> </label>
                                     <button type="submit" class="btn btn-success w-100">Добавить</button>
                                 </div>
                                 <div class="col-12">

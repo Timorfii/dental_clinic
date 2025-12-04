@@ -1045,5 +1045,220 @@ def admin_import_csv(table_name):
         print(f"Ошибка детально: {e}")
 
     return redirect(f'/Admin/{table_name}')
+
+
+@app.route('/Admin/medications_storage')
+@admin_required
+def medications_storage():
+
+    clinic_id = session.get('admin_clinic_id', 1)
+
+
+    medications = db.session.execute(text("""
+        SELECT * FROM medications 
+        WHERE clinic_id = :clinic_id
+        ORDER BY name
+    """), {'clinic_id': clinic_id}).fetchall()
+
+    return render_template('Admins/medications_storage.html', medications=medications)
+
+
+@app.route('/Admin/add_medication', methods=['POST'])
+@admin_required
+def add_medication():
+    try:
+        clinic_id = session.get('admin_clinic_id', 1)
+        name = request.form.get('name')
+        description = request.form.get('description', '')
+        quantity = request.form.get('quantity', 0)
+
+        if not name:
+            flash('Введите название препарата', 'error')
+            return redirect(url_for('medications_storage'))
+
+
+        existing = db.session.execute(text("""
+            SELECT id FROM medications 
+            WHERE name = :name AND clinic_id = :clinic_id
+        """), {'name': name, 'clinic_id': clinic_id}).fetchone()
+
+        if existing:
+            flash('Препарат с таким названием уже существует в этой клинике', 'error')
+            return redirect(url_for('medications_storage'))
+
+        db.session.execute(text("""
+            INSERT INTO medications (name, description, quantity, clinic_id)
+            VALUES (:name, :description, :quantity, :clinic_id) 
+        """), {
+            'name': name,
+            'description': description,
+            'quantity': int(quantity),
+            'clinic_id': clinic_id
+        })
+
+        db.session.commit()
+        flash('Препарат успешно добавлен на склад', 'success')
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Ошибка при добавлении препарата: {str(e)}', 'error')
+
+    return redirect(url_for('medications_storage'))
+
+
+@app.route('/Admin/update_medication_quantity/<int:medication_id>', methods=['POST'])
+@admin_required
+def update_medication_quantity(medication_id):
+    try:
+        clinic_id = session.get('admin_clinic_id', 1)
+        quantity = request.form.get('quantity', 0)
+
+
+        db.session.execute(text("""
+            UPDATE medications 
+            SET quantity = :quantity 
+            WHERE id = :medication_id AND clinic_id = :clinic_id
+        """), {
+            'quantity': int(quantity),
+            'medication_id': medication_id,
+            'clinic_id': clinic_id
+        })
+
+        db.session.commit()
+        flash('Количество препарата обновлено', 'success')
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Ошибка при обновлении количества: {str(e)}', 'error')
+
+    return redirect(url_for('medications_storage'))
+
+
+@app.route('/Admin/delete_medication/<int:medication_id>', methods=['POST'])
+@admin_required
+def delete_medication(medication_id):
+    try:
+        clinic_id = session.get('admin_clinic_id', 1)
+
+        used_in_prescriptions = db.session.execute(text("""
+            SELECT p.id 
+            FROM prescriptions p
+            JOIN medications m ON p.medication_id = m.id
+            WHERE p.medication_id = :medication_id AND m.clinic_id = :clinic_id
+        """), {'medication_id': medication_id, 'clinic_id': clinic_id}).fetchone()
+
+        if used_in_prescriptions:
+            flash('Нельзя удалить препарат, так как он используется в назначениях врачей', 'error')
+            return redirect(url_for('medications_storage'))
+
+        db.session.execute(text("""
+            DELETE FROM medications 
+            WHERE id = :medication_id AND clinic_id = :clinic_id 
+        """), {'medication_id': medication_id, 'clinic_id': clinic_id})
+
+        db.session.commit()
+        flash('Препарат успешно удален', 'success')
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Ошибка при удалении препарата: {str(e)}', 'error')
+
+    return redirect(url_for('medications_storage'))
+
+
+@app.route('/Admin/schedule')
+@admin_required
+def admin_schedule():
+
+    doctor_id = request.args.get('doctor_id')
+    date = request.args.get('date')
+
+    doctors = db.session.execute(text("""
+        SELECT id, first_name, last_name, position 
+        FROM users 
+        WHERE role = 'doctor' AND is_active = true
+        ORDER BY first_name, last_name
+    """)).fetchall()
+
+
+    schedule = []
+    selected_doctor_name = None
+
+    if doctor_id and date:
+
+        doctor = db.session.execute(text("""
+            SELECT first_name, last_name FROM users WHERE id = :doctor_id
+        """), {'doctor_id': doctor_id}).fetchone()
+        if doctor:
+            selected_doctor_name = f"{doctor.first_name} {doctor.last_name}"
+
+        time_slots = [
+            '09:00', '10:00', '11:00', '12:00',
+            '14:00', '15:00', '16:00', '17:00','23:00'
+        ]
+
+        for time_slot in time_slots:
+
+            appointment = db.session.execute(text("""
+                SELECT 
+                    a.id as appointment_id,
+                    a.price,
+
+                    -- Данные пациента
+                    pat.first_name as patient_first_name,
+                    pat.last_name as patient_last_name,
+                    pat.phone_number as patient_phone,
+                    pat.email as patient_email,
+
+                    -- Услуга
+                    s.name as service_name,
+
+                    -- Статус
+                    ast.name as status_name
+
+                FROM appointments a
+                LEFT JOIN users pat ON a.client_id = pat.id
+                LEFT JOIN services s ON a.service_id = s.id
+                LEFT JOIN appointment_statuses ast ON a.status_id = ast.id
+                WHERE a.employee_id = :doctor_id 
+                AND a.appointment_date = :date
+                AND a.appointment_time = :time
+            """), {
+                'doctor_id': doctor_id,
+                'date': date,
+                'time': time_slot
+            }).fetchone()
+
+            if appointment:
+                schedule.append({
+                    'time': time_slot,
+                    'appointment_id': appointment.appointment_id,
+                    'patient_name': f"{appointment.patient_first_name or ''} {appointment.patient_last_name or ''}".strip(),
+                    'patient_phone': appointment.patient_phone,
+                    'patient_email': appointment.patient_email,
+                    'service_name': appointment.service_name,
+                    'status_name': appointment.status_name,
+                    'price': float(appointment.price) if appointment.price else None
+                })
+            else:
+
+                schedule.append({
+                    'time': time_slot,
+                    'appointment_id': None,
+                    'patient_name': None,
+                    'patient_phone': None,
+                    'patient_email': None,
+                    'service_name': None,
+                    'status_name': None,
+                    'price': None
+                })
+
+    return render_template('Admins/admin_schedule.html',
+                           schedule=schedule,
+                           doctors=doctors,
+                           selected_doctor=doctor_id,
+                           selected_date=date,
+                           selected_doctor_name=selected_doctor_name)
+
 if __name__ == '__main__':
     app.run(debug=True)
