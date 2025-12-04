@@ -1,3 +1,4 @@
+import io
 from functools import wraps
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, g
@@ -7,6 +8,7 @@ from flask_sqlalchemy import SQLAlchemy
 import logging
 from sqlalchemy import inspect, text
 import os
+import csv
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -970,6 +972,85 @@ def inject_statuses():
     return dict(statuses=statuses)
 
 
+@app.route('/Admin/import_csv/<table_name>', methods=['POST'])
+@admin_required
+def admin_import_csv(table_name):
+    """Простой импорт CSV"""
+    try:
+        if 'csv_file' not in request.files:
+            flash('Файл не выбран', 'error')
+            return redirect(f'/Admin/{table_name}')
 
+        file = request.files['csv_file']
+
+        if file.filename == '':
+            flash('Файл не выбран', 'error')
+            return redirect(f'/Admin/{table_name}')
+
+        # Читаем CSV
+        stream = io.StringIO(file.stream.read().decode("UTF-8"))
+        csv_reader = csv.reader(stream, delimiter=',')
+
+        # Получаем заголовки из первой строки
+        headers = next(csv_reader)
+
+        # Получаем ID клиники из сессии
+        clinic_id = session.get('admin_clinic_id', 1)
+
+        # Получаем информацию о типах колонок
+        inspector = inspect(db.engine)
+        columns_info = inspector.get_columns(table_name)
+        column_types = {col['name']: str(col['type']) for col in columns_info}
+
+        # Импортируем строки
+        imported = 0
+        for row in csv_reader:
+            if not row:  # пропускаем пустые строки
+                continue
+
+            # Создаем словарь данных
+            data = {}
+            for i, value in enumerate(row):
+                if i < len(headers):
+                    column_name = headers[i]
+
+                    # Преобразуем пустые строки в None для числовых полей
+                    if value == '':
+                        if 'integer' in column_types.get(column_name, '').lower() or \
+                                'numeric' in column_types.get(column_name, '').lower():
+                            data[column_name] = None
+                        else:
+                            data[column_name] = value
+                    else:
+                        data[column_name] = value
+
+            # Добавляем clinic_id если таблица его поддерживает
+            tables_with_clinic = ['services', 'appointments', 'users', 'medications', 'equipment']
+            if table_name in tables_with_clinic and 'clinic_id' not in data:
+                data['clinic_id'] = clinic_id
+
+            # Преобразуем булевы значения
+            for key in data:
+                if data[key] is not None:
+                    if isinstance(data[key], str) and data[key].lower() in ['true', 'false']:
+                        data[key] = data[key].lower() == 'true'
+
+            # Вставляем в БД
+            if data:
+                columns = ', '.join(data.keys())
+                placeholders = ', '.join([f':{key}' for key in data.keys()])
+                sql = text(f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})")
+                db.session.execute(sql, data)
+                imported += 1
+
+        db.session.commit()
+        flash(f'Импортировано {imported} записей', 'success')
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Ошибка импорта: {str(e)}', 'error')
+        print(f"Ошибка детально: {e}")  # Для отладки
+
+    return redirect(f'/Admin/{table_name}')
 if __name__ == '__main__':
     app.run(debug=True)

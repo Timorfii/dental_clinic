@@ -60,7 +60,27 @@
             </form>
         </div>
     </div>
-
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">Импорт CSV</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="/Admin/import_csv/{{table_name}}" enctype="multipart/form-data" class="row g-3 align-items-end">
+                <div class="col-md-8">
+                    <label class="form-label">Выберите CSV файл (разделитель - запятая):</label>
+                    <input type="file" class="form-control" name="csv_file" accept=".csv" required>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-success w-100">Импортировать</button>
+                </div>
+                <div class="col-12">
+                    <small class="text-muted">
+                        Первая строка должна содержать названия колонок таблицы
+                    </small>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <div class="table-responsive">
         <table class="table table-striped table-bordered table-hover">
