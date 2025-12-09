@@ -47,25 +47,45 @@
             {% endif %}
         </nav>
     </div>
-    <div class="container mt-3">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-    </div>
+        <div class="container mt-3">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }}
+                                    alert-dismissible fade show" role="alert">
+
+                            {% if category == 'error' and 'обязательные поля' in message|lower %}
+                                <h6 class="alert-heading">⚠️ Заполните обязательные поля</h6>
+                                <p>{{ message }}</p>
+                                <hr>
+                                <p class="mb-0 small">
+                                    <strong>Совет:</strong> Поля, отмеченные <span class="text-danger">*</span>, обязательны для заполнения.
+                                </p>
+
+                            {% elif category == 'error' and 'не может быть пустым' in message|lower %}
+                                <h6 class="alert-heading">⚠️ Обязательное поле</h6>
+                                <p>{{ message }}</p>
+                                <hr>
+                                <p class="mb-0 small">
+                                    Это поле требует значения. Пожалуйста, заполните его.
+                                </p>
+
+                            {% else %}
+                                {{ message }}
+                            {% endif %}
+
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
 
     <main class="content">
         {% block content %}
 
         {% endblock %}
     </main>
-
     <footer>
         <div class="footer-container">
             <p>&copy; 2025 Стоматологическая клиника "Зубибиби". Все права защищены.</p>

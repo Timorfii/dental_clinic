@@ -12,7 +12,7 @@
     <div class="row mb-3">
         <div class="col-12 text-end">
             <button onclick="window.print()" class="btn btn-success">
-                🖨️ Печать карты пациента
+                Печать карты пациента
             </button>
         </div>
     </div>
@@ -98,7 +98,7 @@
 
                                 {% if appointment.diagnosis or appointment.treatment or appointment.doctor_notes %}
                                 <div class="mt-3 p-3 bg-light rounded">
-                                    <h6 class="border-bottom pb-2">🩺 Запись врача:</h6>
+                                    <h6 class="border-bottom pb-2"> Запись врача:</h6>
                                     
                                     {% if appointment.diagnosis %}
                                     <div class="mb-2">
@@ -129,7 +129,7 @@
                                 </div>
                                 {% else %}
                                 <div class="mt-2">
-                                    <small class="text-muted">🩺 Записей врача нет</small>
+                                    <small class="text-muted"> Записей врача нет</small>
                                 </div>
                                 {% endif %}
                             </div>

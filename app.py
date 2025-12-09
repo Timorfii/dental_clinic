@@ -42,6 +42,55 @@ CLINICS_CONFIG = {
 
 
 
+REQUIRED_FIELDS = {
+    'users': {
+        'username': 'Имя пользователя',
+        'email': 'Email',
+        'password': 'Пароль'
+    },
+    'services': {
+        'name': 'Название услуги',
+        'price': 'Цена'
+    },
+    'appointments': {
+        'client_id': 'ID клиента',
+        'service_id': 'ID услуги',
+        'appointment_date': 'Дата приема',
+        'appointment_time': 'Время приема'
+    },
+    'clinics': {
+        'name': 'Название клиники',
+        'address': 'Адрес'
+    },
+    'medications': {
+        'name': 'Название препарата'
+    },
+    'equipment': {
+        'name': 'Название оборудования',
+        'type': 'Тип оборудования'
+    },
+    'appointment_statuses': {
+        'name': 'Название статуса'
+    }
+}
+DEFAULT_VALUES = {
+    'users': {
+        'role': 'client',
+        'is_active': True,
+        'clinic_id': 1
+    },
+    'services': {
+        'duration_minutes': 60,
+        'is_active': True,
+        'clinic_id': 1
+    },
+    'appointments': {
+        'duration_minutes': 60,
+        'status_id': 1,
+        'clinic_id': 1
+    }
+}
+
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
@@ -169,13 +218,12 @@ def register():
         if User.query.filter_by(email=email).first():
             return "Пользователь с таким email уже существует", 400
 
-        clinic_info = get_clinic_by_slug(clinic_slug)
 
         user = User(
             username=username,
             email=email,
             role='client',
-            clinic_id=clinic_info['id']
+            clinic_id=1
         )
         user.set_password(password)
 
@@ -195,16 +243,11 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        clinic_slug = request.form.get('clinic_slug', 'center')  # Получаем выбранную клинику
+        clinic_slug = request.form.get('clinic_slug', 'center')
 
         user = User.query.filter_by(username=username).first()
 
         if user and user.check_password(password) and user.is_active:
-
-            clinic_info = get_clinic_by_slug(clinic_slug)
-            if user.clinic_id != clinic_info['id']:
-                flash('Пользователь не зарегистрирован в этой клинике', 'error')
-                return redirect(url_for('login'))
 
             login_user(user)
             next_page = request.args.get('next')
@@ -295,7 +338,6 @@ def account(clinic_slug):
     clinic_info = get_clinic_by_slug(clinic_slug)
     if current_user.clinic_id != clinic_info['id']:
         flash('Доступ запрещен - вы не зарегистрированы в этой клинике', 'error')
-        # Перенаправляем в правильную клинику
         if current_user.clinic_id == 1:
             return redirect(url_for('account', clinic_slug='center'))
         else:
@@ -308,10 +350,6 @@ def account(clinic_slug):
 @login_required
 def update_profile(clinic_slug):
     clinic_info = get_clinic_by_slug(clinic_slug)
-    if current_user.clinic_id != clinic_info['id']:
-        flash('Доступ запрещен', 'error')
-        return redirect(url_for('clinic_home', clinic_slug=clinic_slug))
-
     current_user.first_name = request.form.get('first_name', '')
     current_user.last_name = request.form.get('last_name', '')
     current_user.phone_number = request.form.get('phone_number', '')
@@ -327,12 +365,6 @@ def Make_appointment(clinic_slug):
     clinic_info = get_clinic_by_slug(clinic_slug)
     clinic_id = clinic_info['id']
 
-    if current_user.clinic_id != clinic_id:
-        flash('Вы не можете записываться в эту клинику', 'error')
-        if current_user.clinic_id == 1:
-            return redirect(url_for('Make_appointment', clinic_slug='center'))
-        else:
-            return redirect(url_for('Make_appointment', clinic_slug='north'))
 
     if request.method == 'POST':
         service_id = request.form.get('service_id')
@@ -459,12 +491,6 @@ def user_appointments(clinic_slug):
     clinic_info = get_clinic_by_slug(clinic_slug)
     clinic_id = clinic_info['id']
 
-    if current_user.clinic_id != clinic_id:
-        flash('Доступ запрещен', 'error')
-        if current_user.clinic_id == 1:
-            return redirect(url_for('user_appointments', clinic_slug='center'))
-        else:
-            return redirect(url_for('user_appointments', clinic_slug='north'))
 
     appointments_list = db.session.execute(text("""
         SELECT a.*, s.name as service_name 
@@ -487,12 +513,6 @@ def patient_card(clinic_slug):
     clinic_info = get_clinic_by_slug(clinic_slug)
     clinic_id = clinic_info['id']
 
-    if current_user.clinic_id != clinic_id:
-        flash('Доступ запрещен', 'error')
-        if current_user.clinic_id == 1:
-            return redirect(url_for('patient_card', clinic_slug='center'))
-        else:
-            return redirect(url_for('patient_card', clinic_slug='north'))
 
     patient_info = db.session.execute(text("""
         SELECT id, first_name, last_name, email, phone_number, 
@@ -543,12 +563,6 @@ def doctor_dashboard(clinic_slug):
     clinic_info = get_clinic_by_slug(clinic_slug)
     clinic_id = clinic_info['id']
 
-    if current_user.clinic_id != clinic_id:
-        flash('Вы не работаете в этой клинике', 'error')
-        if current_user.clinic_id == 1:
-            return redirect(url_for('doctor_dashboard', clinic_slug='center'))
-        else:
-            return redirect(url_for('doctor_dashboard', clinic_slug='north'))
 
     today = datetime.now().date()
     appointments = db.session.execute(text("""
@@ -583,12 +597,6 @@ def doctor_appointment_detail(clinic_slug, appointment_id):
     clinic_info = get_clinic_by_slug(clinic_slug)
     clinic_id = clinic_info['id']
 
-    if current_user.clinic_id != clinic_id:
-        flash('Вы не работаете в этой клинике', 'error')
-        if current_user.clinic_id == 1:
-            return redirect(url_for('doctor_dashboard', clinic_slug='center'))
-        else:
-            return redirect(url_for('doctor_dashboard', clinic_slug='north'))
 
     appointment = db.session.execute(text("""
         SELECT a.*, 
@@ -768,30 +776,224 @@ def add_record(table_name):
         clinic_id = session.get('admin_clinic_id', 1)
         fields = []
         params = {}
+        missing_fields = []
 
-        for field, value in request.form.items():
-            if field and value:
+
+        table_required = REQUIRED_FIELDS.get(table_name, {})
+        table_defaults = DEFAULT_VALUES.get(table_name, {})
+
+        for field, field_name in table_required.items():
+            value = request.form.get(field, '').strip()
+
+            if field == 'password':
+                password_value = request.form.get('password', '').strip()
+                if not password_value:
+                    missing_fields.append(field_name)
+
+            elif not value:
+                missing_fields.append(field_name)
+            else:
                 fields.append(field)
-                if field == 'is_active' or field.endswith('_active'):
-                    params[field] = True
-                else:
-                    params[field] = value
+                params[field] = value
 
-        tables_with_clinic_id = ['services', 'appointments', 'users', 'medications', 'equipment']
-        if table_name in tables_with_clinic_id and 'clinic_id' not in fields:
+        if missing_fields:
+            flash(f'Заполните обязательные поля: {", ".join(missing_fields)}', 'error')
+            return redirect(f'/Admin/{table_name}')
+
+
+        if table_name == 'users' and 'password' in request.form:
+            from werkzeug.security import generate_password_hash
+            password = request.form.get('password', '').strip()
+            if password:
+                if 'password' in fields:
+                    fields.remove('password')
+                fields.append('password_hash')
+                params['password_hash'] = generate_password_hash(password)
+
+
+        for field, default_value in table_defaults.items():
+            if field not in fields:
+
+                form_value = request.form.get(field)
+                if form_value is not None and str(form_value).strip() != '':
+                    fields.append(field)
+                    if field == 'is_active':
+                        params[field] = str(form_value).lower() in ['true', '1', 'yes', 'on']
+                    elif 'price' in field or 'cost' in field:
+                        try:
+                            params[field] = float(form_value)
+                        except:
+                            params[field] = default_value
+                    elif field in ['duration_minutes', 'quantity']:
+                        try:
+                            params[field] = int(form_value)
+                        except:
+                            params[field] = default_value
+                    else:
+                        params[field] = form_value
+                else:
+
+                    fields.append(field)
+                    params[field] = default_value
+
+        tables_with_clinic = ['services', 'appointments', 'users', 'medications', 'equipment']
+        if table_name in tables_with_clinic and 'clinic_id' not in fields:
             fields.append('clinic_id')
             params['clinic_id'] = clinic_id
 
+        for field, value in request.form.items():
+
+            if field in fields or field == 'password' or field == 'clinic_id':
+                continue
+
+
+            if not value or str(value).strip() == '':
+                continue
+
+            fields.append(field)
+
+
+            if field == 'is_active' or field.endswith('_active'):
+                params[field] = value.lower() in ['true', '1', 'yes', 'on']
+
+            elif 'price' in field or 'cost' in field:
+                try:
+                    params[field] = float(value)
+                except:
+                    params[field] = 0.0
+
+            elif field in ['duration_minutes', 'quantity', 'quantity_prescribed']:
+                try:
+                    params[field] = int(value)
+                except:
+                    params[field] = 0
+
+            elif 'date' in field.lower():
+                params[field] = value if value else None
+
+            else:
+                params[field] = value
         if fields:
             placeholders = [f":{field}" for field in fields]
             sql = text(f"INSERT INTO {table_name} ({', '.join(fields)}) VALUES ({', '.join(placeholders)})")
             db.session.execute(sql, params)
             db.session.commit()
+            flash(f'Запись успешно добавлена в таблицу {table_name}', 'success')
+        else:
+            flash('Нет данных для добавления', 'error')
 
         return redirect(f'/Admin/{table_name}')
-    except Exception as e:
-        return f"Ошибка добавления: {e}"
 
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        error_msg = str(e)
+
+        if table_name == 'equipment_usage':
+
+            if "medication_id" in error_msg:
+
+                flash('Ошибка: указанный medication_id не существует в таблице medications', 'error')
+
+            elif "medical_record_id" in error_msg:
+
+                flash('Ошибка: указанный medical_record_id не существует в таблице client_medical_records', 'error')
+
+            elif "employee_id" in error_msg:
+
+                flash('Ошибка: указанный employee_id не существует в таблице users', 'error')
+
+            elif "appointment_id" in error_msg:
+
+                flash('Ошибка: указанный appointment_id не существует в таблице appointments', 'error')
+
+            elif "equipment_id" in error_msg:
+
+                flash('Ошибка: указанный equipment_id не существует в таблице equipment', 'error')
+
+            elif "ForeignKeyViolation" in error_msg or "внешнего ключа" in error_msg:
+
+                flash('Ошибка: указанный ID не существует в связанной таблице', 'error')
+
+            else:
+
+                flash(f'Ошибка добавления: {error_msg}', 'error')
+
+        else:
+
+
+            if "not-null constraint" in error_msg.lower():
+
+                import re
+
+                match = re.search(r'column "([^"]+)"', error_msg)
+
+                if match:
+
+                    field_name = match.group(1)
+
+                    field_translation = {
+
+                        'password_hash': 'Пароль',
+
+                        'username': 'Имя пользователя',
+
+                        'email': 'Email',
+
+                        'role': 'Роль',
+
+                        'name': 'Название',
+
+                        'price': 'Цена',
+
+                        'client_id': 'ID клиента',
+
+                        'service_id': 'ID услуги',
+
+                        'appointment_date': 'Дата приема',
+
+                        'appointment_time': 'Время приема'
+
+                    }
+
+                    user_field_name = field_translation.get(field_name, field_name)
+
+                    flash(f'Ошибка: поле "{user_field_name}" не может быть пустым', 'error')
+
+                else:
+
+                    flash('Ошибка: не все обязательные поля заполнены', 'error')
+
+            elif "ForeignKeyViolation" in error_msg or "внешнего ключа" in error_msg:
+
+
+                if "medication_id" in error_msg:
+
+                    flash('Ошибка: указанный medication_id не существует', 'error')
+
+                elif "appointment_id" in error_msg:
+
+                    flash('Ошибка: указанный appointment_id не существует', 'error')
+
+                elif "client_id" in error_msg:
+
+                    flash('Ошибка: указанный client_id не существует', 'error')
+
+                elif "service_id" in error_msg:
+
+                    flash('Ошибка: указанный service_id не существует', 'error')
+
+                else:
+
+                    flash('Ошибка: один из указанных ID не существует в связанной таблице', 'error')
+
+            else:
+
+                flash(f'Ошибка добавления: {error_msg}', 'error')
+
+        return redirect(f'/Admin/{table_name}')
 
 @app.route('/<clinic_slug>/Admin/<table_name>')
 @admin_required
@@ -828,28 +1030,48 @@ def update_record(table_name, record_id):
         clinic_id = session.get('admin_clinic_id', 1)
 
         updates = {}
+        missing_fields = []
+
+
+        table_required = REQUIRED_FIELDS.get(table_name, {})
+
+        for field, field_name in table_required.items():
+            if field == 'password':
+                continue
+
+            value = request.form.get(field, '').strip()
+            if not value:
+                missing_fields.append(field_name)
+            else:
+                updates[field] = value
+
+        if missing_fields:
+            flash(f'Заполните обязательные поля: {", ".join(missing_fields)}', 'error')
+            return redirect(f'/Admin/{table_name}')
+
         for key, value in request.form.items():
-            if key:
-                if value in ['', 'None', None]:
-                    updates[key] = None
-                elif key == 'is_active' or key.endswith('_active'):
-                    updates[key] = value.lower() in ['true', '1', 'yes', 'on']
-                elif key == 'password' and value:
-                    if table_name == 'users':
-                        from werkzeug.security import generate_password_hash
-                        updates['password_hash'] = generate_password_hash(value)
-                elif 'date' in key.lower() or 'time' in key.lower():
-                    if value:
-                        updates[key] = value
-                    else:
-                        updates[key] = None
-                elif 'price' in key.lower() or 'cost' in key.lower():
-                    try:
-                        updates[key] = float(value) if value else None
-                    except:
-                        updates[key] = None
-                else:
-                    updates[key] = value
+            if key in updates:
+                continue
+
+            if value == '' or value == 'None':
+                updates[key] = None
+            elif key == 'is_active' or key.endswith('_active'):
+                updates[key] = value.lower() in ['true', '1', 'yes', 'on']
+            elif key == 'password' and value and table_name == 'users':
+                from werkzeug.security import generate_password_hash
+                updates['password_hash'] = generate_password_hash(value)
+            elif 'price' in key.lower() or 'cost' in key.lower():
+                try:
+                    updates[key] = float(value) if value else 0.0
+                except:
+                    updates[key] = 0.0
+            elif key in ['duration_minutes', 'quantity', 'quantity_prescribed']:
+                try:
+                    updates[key] = int(value) if value else 0
+                except:
+                    updates[key] = 0
+            else:
+                updates[key] = value
 
         if 'password' in updates:
             del updates['password']
@@ -886,11 +1108,13 @@ def update_record(table_name, record_id):
                 result = db.session.execute(sql, params)
 
             db.session.commit()
+            flash('Запись успешно обновлена', 'success')
 
         return redirect(f'/Admin/{table_name}')
     except Exception as e:
         db.session.rollback()
-        return f"Ошибка обновления: {e}"
+        flash(f'Ошибка обновления: {str(e)}', 'error')
+        return redirect(f'/Admin/{table_name}')
 
 
 @app.route('/Admin/delete/<table_name>/<int:record_id>', methods=['POST'])

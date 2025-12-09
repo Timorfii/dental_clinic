@@ -21,45 +21,107 @@
 </div>
 
 
-<div class="container">
-    <h2>Управление: {{ table_name }}</h2>
+        <div class="container">
+            <h2>Управление: {{ table_name }}</h2>
 
 
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">Добавить новую запись</h5>
-        </div>
-        <div class="card-body">
-            <form method="POST" action="/Admin/add/{{ table_name }}" class="row g-3">
-                {% for column in columns %}
-                    {% if column != 'id' %}
-                    <div class="col-md-4">
-                        <label class="form-label small">{{ column }}</label>
+                <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Добавить новую запись</h5>
+                {% if table_name in ['users', 'services', 'appointments'] %}
+                <small class="text-danger">
+                    <strong>Обязательные поля:</strong>
+                    {% if table_name == 'users' %}Имя пользователя, Email, Пароль{% endif %}
+                    {% if table_name == 'services' %}Название, Цена{% endif %}
+                    {% if table_name == 'appointments' %}ID клиента, ID услуги, Дата, Время{% endif %}
+                </small>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/Admin/add/{{ table_name }}" class="row g-3" id="addForm">
+                    {% for column in columns %}
+                        {% if column != 'id' %}
+                        <div class="col-md-4">
+                            <label class="form-label small">
+                                {{ column }}
+                                {% if table_name == 'users' and column in ['username', 'email', 'password'] %}
+                                    <span class="text-danger">*</span>
+                                {% elif table_name == 'services' and column in ['name', 'price'] %}
+                                    <span class="text-danger">*</span>
+                                {% elif table_name == 'appointments' and column in ['client_id', 'service_id', 'appointment_date', 'appointment_time'] %}
+                                    <span class="text-danger">*</span>
+                                {% endif %}
+                            </label>
 
-                        {% if column == 'is_active' or column.endswith('_active') %}
-                            <input type="checkbox" name="{{ column }}" value="true" class="form-check-input">
+                            {% if column == 'clinic_id' %}
+                                <input type="text" name="{{ column }}"
+                                       value="{{ clinic_id }}"
+                                       class="form-control form-control-sm"
+                                       readonly>
 
-                        {% elif 'price' in column or 'cost' in column %}
-                            <input type="number" name="{{ column }}" step="0.01"
-                                   class="form-control form-control-sm" placeholder="0.00">
+                            {% elif column == 'is_active' or column.endswith('_active') %}
+                                <input type="checkbox" name="{{ column }}" value="true"
+                                       class="form-check-input">
 
-                        {% elif 'description' in column or 'notes' in column %}
-                            <textarea name="{{ column }}" class="form-control form-control-sm"
-                                      rows="2" placeholder="{{ column }}"></textarea>
+                            {% elif column == 'password' and table_name == 'users' %}
+                                <input type="password" name="{{ column }}"
+                                       class="form-control form-control-sm"
+                                       placeholder="Введите пароль"
+                                       {% if table_name == 'users' %}required{% endif %}>
 
-                        {% else %}
-                            <input type="text" name="{{ column }}"
-                                   class="form-control form-control-sm" placeholder="{{ column }}">
+                            {% elif table_name == 'users' and column in ['username', 'email'] %}
+                                <input type="text" name="{{ column }}"
+                                       class="form-control form-control-sm"
+                                       placeholder="{{ column }}" required>
+
+                            {% elif table_name == 'services' and column in ['name', 'price'] %}
+                                {% if column == 'price' %}
+                                    <input type="number" name="{{ column }}" step="0.01"
+                                           class="form-control form-control-sm" placeholder="0.00" required>
+                                {% else %}
+                                    <input type="text" name="{{ column }}"
+                                           class="form-control form-control-sm"
+                                           placeholder="{{ column }}" required>
+                                {% endif %}
+
+                            {% elif column == 'duration_minutes' and table_name == 'services' %}
+
+                                <input type="number" name="{{ column }}"
+                                       class="form-control form-control-sm"
+                                       placeholder="60"
+                                       title="По умолчанию: 60 минут">
+
+                            {% elif 'price' in column or 'cost' in column %}
+                                <input type="number" name="{{ column }}" step="0.01"
+                                       class="form-control form-control-sm" placeholder="0.00">
+
+                            {% elif 'description' in column or 'notes' in column %}
+                                <textarea name="{{ column }}" class="form-control form-control-sm"
+                                          rows="2" placeholder="{{ column }}"></textarea>
+
+                            {% else %}
+                                <input type="text" name="{{ column }}"
+                                       class="form-control form-control-sm" placeholder="{{ column }}">
+                            {% endif %}
+
+
+                            {% if column == 'duration_minutes' and table_name == 'services' %}
+                                <small class="text-muted">По умолчанию: 60 минут</small>
+                            {% elif column == 'role' and table_name == 'users' %}
+                                <small class="text-muted">По умолчанию: client</small>
+                            {% endif %}
+                        </div>
                         {% endif %}
+                    {% endfor %}
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-success btn-sm">Добавить</button>
+                        <small class="text-muted ms-2">
+                            * - обязательное поле
+                        </small>
                     </div>
-                    {% endif %}
-                {% endfor %}
-                <div class="col-12">
-                    <button type="submit" class="btn btn-success btn-sm">Добавить</button>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
-    </div>
     <div class="card mb-4">
         <div class="card-header bg-success text-white">
             <h5 class="mb-0">Импорт CSV</h5>
@@ -100,24 +162,33 @@
                     <td>
                         {% if column == 'id' %}
                             <strong>{{ row[column] }}</strong>
+
+                        {% elif column == 'clinic_id' %}
+
+                            <input type="text" name="{{ column }}" value="{{ row[column] or clinic_id }}"
+                                   class="form-control form-control-sm" readonly required>
+
+                        {% elif column == 'is_active' or column.endswith('_active') %}
+                            <input type="checkbox" name="{{ column }}"
+                                   {% if row[column] %}checked{% endif %}
+                                   class="form-check-input">
+
+                        {% elif column == 'password' and table_name == 'users' %}
+                            <input type="password" name="{{ column }}"
+                                   class="form-control form-control-sm"
+                                   placeholder="Оставьте пустым, чтобы не менять">
+
+                        {% elif 'price' in column or 'cost' in column %}
+                            <input type="number" name="{{ column }}" value="{{ row[column] or '' }}"
+                                   step="0.01" class="form-control form-control-sm">
+
+                        {% elif 'description' in column or 'notes' in column %}
+                            <textarea name="{{ column }}" class="form-control form-control-sm"
+                                      rows="2">{{ row[column] or '' }}</textarea>
+
                         {% else %}
-                            {% if column == 'is_active' or column.endswith('_active') %}
-                                <input type="checkbox" name="{{ column }}"
-                                       {% if row[column] %}checked{% endif %}
-                                       class="form-check-input">
-
-                            {% elif 'price' in column or 'cost' in column %}
-                                <input type="number" name="{{ column }}" value="{{ row[column] }}"
-                                       step="0.01" class="form-control form-control-sm">
-
-                            {% elif 'description' in column or 'notes' in column %}
-                                <textarea name="{{ column }}" class="form-control form-control-sm"
-                                          rows="2">{{ row[column] }}</textarea>
-
-                            {% else %}
-                                <input type="text" name="{{ column }}" value="{{ row[column] }}"
-                                       class="form-control form-control-sm">
-                            {% endif %}
+                            <input type="text" name="{{ column }}" value="{{ row[column] or '' }}"
+                                   class="form-control form-control-sm">
                         {% endif %}
                     </td>
                     {% endfor %}
@@ -125,10 +196,10 @@
                         <button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
                         </form>
 
-                            <form method="POST" action="/Admin/delete/{{ table_name }}/{{ row.id }}"
+                        <form method="POST" action="/Admin/delete/{{ table_name }}/{{ row.id }}"
                               onsubmit="return confirm('Удалить запись?')" class="d-inline ms-1">
-                                <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
-                            </form>
+                            <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                        </form>
                     </td>
                 </tr>
                 {% endfor %}
@@ -140,5 +211,57 @@
 
 
 
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('addForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            let isValid = true;
+            let errorMessage = '';
 
+            const tableName = '{{ table_name }}';
+
+            if (tableName === 'users') {
+                const username = form.querySelector('[name="username"]');
+                const email = form.querySelector('[name="email"]');
+                const password = form.querySelector('[name="password"]');
+
+                if (username && !username.value.trim()) {
+                    isValid = false;
+                    errorMessage += '• Имя пользователя обязательно\n';
+                }
+                if (email && !email.value.trim()) {
+                    isValid = false;
+                    errorMessage += '• Email обязателен\n';
+                }
+                if (password && !password.value.trim()) {
+                    isValid = false;
+                    errorMessage += '• Пароль обязателен\n';
+                }
+            }
+
+            if (tableName === 'services') {
+                const name = form.querySelector('[name="name"]');
+                const price = form.querySelector('[name="price"]');
+
+                if (name && !name.value.trim()) {
+                    isValid = false;
+                    errorMessage += '• Название услуги обязательно\n';
+                }
+                if (price && !price.value.trim()) {
+                    isValid = false;
+                    errorMessage += '• Цена обязательна\n';
+                }
+            }
+
+            if (!isValid) {
+                e.preventDefault();
+                alert('Заполните обязательные поля:\n' + errorMessage);
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
 
