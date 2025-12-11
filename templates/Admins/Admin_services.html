@@ -54,10 +54,10 @@
                             </label>
 
                             {% if column == 'clinic_id' %}
-                                <input type="text" name="{{ column }}"
-                                       value="{{ clinic_id }}"
+                                <input type="number" name="{{ column }}"
+                                       value="{{ session.get('admin_clinic_id', 1) }}"
                                        class="form-control form-control-sm"
-                                       readonly>
+                                       min="1" step="1">
 
                             {% elif column == 'is_active' or column.endswith('_active') %}
                                 <input type="checkbox" name="{{ column }}" value="true"
@@ -165,8 +165,8 @@
 
                         {% elif column == 'clinic_id' %}
 
-                            <input type="text" name="{{ column }}" value="{{ row[column] or clinic_id }}"
-                                   class="form-control form-control-sm" readonly required>
+                            <input type="number" name="{{ column }}" value="{{ row[column] or 1 }}"
+                                   class="form-control form-control-sm" min="1" step="1">
 
                         {% elif column == 'is_active' or column.endswith('_active') %}
                             <input type="checkbox" name="{{ column }}"

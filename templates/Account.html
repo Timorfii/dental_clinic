@@ -11,7 +11,9 @@
             <div class="acc-razmer">
                 <img src="{{ url_for('static', filename='images/avatar.jpg')}}"
                  width="250" height="275" alt="Отзыв">
-                <button class="change-avatar-btn">Сменить аватар</button>
+                <div>
+                    <button class="btn btn-primary w-100">Сменить аватар</button>
+                </div>
                     <form method="POST" action="{{ url_for('update_profile', clinic_slug=current_clinic.slug) }}">
                         <div class="row mb-3">
                             <div class="col-md-6">

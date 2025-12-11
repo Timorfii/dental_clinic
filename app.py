@@ -337,7 +337,6 @@ def price(clinic_slug):
 def account(clinic_slug):
     clinic_info = get_clinic_by_slug(clinic_slug)
     if current_user.clinic_id != clinic_info['id']:
-        flash('Доступ запрещен - вы не зарегистрированы в этой клинике', 'error')
         if current_user.clinic_id == 1:
             return redirect(url_for('account', clinic_slug='center'))
         else:
@@ -824,7 +823,7 @@ def add_record(table_name):
                             params[field] = float(form_value)
                         except:
                             params[field] = default_value
-                    elif field in ['duration_minutes', 'quantity']:
+                    elif field in ['duration_minutes', 'quantity, clinic_id']:
                         try:
                             params[field] = int(form_value)
                         except:
@@ -1027,11 +1026,9 @@ def admin_clinic_manage_table(clinic_slug, table_name):
 @admin_required
 def update_record(table_name, record_id):
     try:
-        clinic_id = session.get('admin_clinic_id', 1)
 
         updates = {}
         missing_fields = []
-
 
         table_required = REQUIRED_FIELDS.get(table_name, {})
 
@@ -1065,7 +1062,7 @@ def update_record(table_name, record_id):
                     updates[key] = float(value) if value else 0.0
                 except:
                     updates[key] = 0.0
-            elif key in ['duration_minutes', 'quantity', 'quantity_prescribed']:
+            elif key in ['duration_minutes', 'quantity', 'quantity_prescribed', 'clinic_id']:
                 try:
                     updates[key] = int(value) if value else 0
                 except:
@@ -1078,7 +1075,7 @@ def update_record(table_name, record_id):
 
         if updates:
             set_parts = []
-            params = {'id': record_id, 'clinic_id': clinic_id}
+            params = {'id': record_id}
 
             for key, value in updates.items():
                 if value is None:
@@ -1089,24 +1086,13 @@ def update_record(table_name, record_id):
 
             set_clause = ', '.join(set_parts)
 
-            tables_with_clinic_id = ['services', 'appointments', 'users', 'medications', 'equipment']
-            if table_name in tables_with_clinic_id:
-                sql = text(f"""
-                    UPDATE {table_name} 
-                    SET {set_clause} 
-                    WHERE id = :id 
-                    AND clinic_id = :clinic_id
-                """)
-                result = db.session.execute(sql, params)
-            else:
-                sql = text(f"""
-                    UPDATE {table_name} 
-                    SET {set_clause} 
-                    WHERE id = :id
-                """)
-                del params['clinic_id']
-                result = db.session.execute(sql, params)
+            sql = text(f"""
+                UPDATE {table_name} 
+                SET {set_clause} 
+                WHERE id = :id
+            """)
 
+            result = db.session.execute(sql, params)
             db.session.commit()
             flash('Запись успешно обновлена', 'success')
 
@@ -1114,6 +1100,8 @@ def update_record(table_name, record_id):
     except Exception as e:
         db.session.rollback()
         flash(f'Ошибка обновления: {str(e)}', 'error')
+        import traceback
+        print(f"Ошибка детально: {traceback.format_exc()}")
         return redirect(f'/Admin/{table_name}')
 
 
