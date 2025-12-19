@@ -8,12 +8,29 @@
         <div class="col-md-8">
             <div class="card">
                 <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">Запись на прием - {{current_clinic.name}}</h4>
+                    <h4 class="mb-0">Запись на прием</h4>
                 </div>
                 <div class="card-body">
 
+                    <form method="GET" action="{{ url_for('Make_appointment') }}" class="row g-3 mb-4" id="clinicForm">
+                        <div class="col-md-12">
+                            <label class="form-label"><strong>Выберите клинику:</strong></label>
+                            <select name="clinic_slug" class="form-select" required id="clinicSelect">
+                                <option value="">-- Выберите клинику --</option>
+                                {% for clinic in all_clinics %}
+                                <option value="{{ clinic.slug }}"
+                                    {% if current_clinic.slug == clinic.slug %}selected{% endif %}>
+                                    {{ clinic.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </form>
 
-                    <form method="GET" action="{{ url_for('Make_appointment', clinic_slug=current_clinic.slug) }}" class="row g-3 mb-4">
+                    {% if current_clinic %}
+                    <form method="GET" action="{{ url_for('Make_appointment') }}" class="row g-3 mb-4">
+                        <input type="hidden" name="clinic_slug" value="{{ current_clinic.slug }}">
+
                         <div class="col-md-6">
                             <label class="form-label"><strong>Выберите врача:</strong></label>
                             <select name="doctor_id" class="form-select" required>
@@ -37,15 +54,15 @@
                             </button>
                         </div>
                     </form>
-
+                    {% endif %}
 
                     {% if selected_doctor and selected_date %}
                     <hr>
 
-
-                    <form method="POST" action="{{ url_for('Make_appointment', clinic_slug=current_clinic.slug) }}">
+                    <form method="POST" action="{{ url_for('Make_appointment') }}">
                         <input type="hidden" name="doctor_id" value="{{ selected_doctor }}">
                         <input type="hidden" name="appointment_date" value="{{ selected_date }}">
+                        <input type="hidden" name="clinic_slug" value="{{ current_clinic.slug }}">
 
                         <div class="mb-4">
                             <label class="form-label"><strong>Выберите услугу:</strong></label>
@@ -58,7 +75,6 @@
                                 {% endfor %}
                             </select>
                         </div>
-
 
                         <div class="mb-4">
                             <label class="form-label"><strong>Расписание врача на {{ selected_date }}:</strong></label>
@@ -94,18 +110,27 @@
                         </div>
                     </form>
 
-                    {% elif selected_doctor or selected_date %}
+                    {% elif (selected_doctor or selected_date) and current_clinic %}
 
                     <div class="alert alert-info text-center">
                         <h5>Выберите врача и дату</h5>
                         <p class="mb-0">Чтобы увидеть расписание врача, выберите врача и дату приема</p>
                     </div>
-                    {% else %}
+
+                    {% elif current_clinic %}
 
                     <div class="alert alert-info text-center">
                         <h5>Добро пожаловать!</h5>
                         <p class="mb-0">Выберите врача и дату приема чтобы увидеть доступное время для записи</p>
+                        <p><strong>Текущая клиника:</strong> {{ current_clinic.name }}</p>
                     </div>
+                    {% else %}
+
+                    <div class="alert alert-info text-center">
+                        <h5>Выберите клинику для записи</h5>
+                        <p class="mb-0">Пожалуйста, выберите клинику из списка выше</p>
+                    </div>
+
                     {% endif %}
 
                     <div class="mt-4 text-center text-muted small">
@@ -116,4 +141,13 @@
         </div>
     </div>
 </div>
+
+<script>
+document.getElementById('clinicSelect').addEventListener('change', function() {
+    if (this.value) {
+        document.getElementById('clinicForm').submit();
+    }
+});
+</script>
+
 {% endblock %}

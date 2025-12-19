@@ -358,11 +358,13 @@ def update_profile(clinic_slug):
     return redirect(url_for('account', clinic_slug=clinic_slug))
 
 
-@app.route('/<clinic_slug>/Make_appointment', methods=['GET', 'POST'])
+@app.route('/Make_appointment', methods=['GET', 'POST'])
 @login_required
-def Make_appointment(clinic_slug):
+def Make_appointment():
+    clinic_slug = request.args.get('clinic_slug') or request.form.get('clinic_slug', 'center')
     clinic_info = get_clinic_by_slug(clinic_slug)
     clinic_id = clinic_info['id']
+
 
 
     if request.method == 'POST':
@@ -370,10 +372,11 @@ def Make_appointment(clinic_slug):
         doctor_id = request.form.get('doctor_id')
         appointment_date = request.form.get('appointment_date')
         appointment_time = request.form.get('appointment_time')
+        clinic_slug_post = request.form.get('clinic_slug', 'center')
 
         if not all([service_id, doctor_id, appointment_date, appointment_time]):
             flash('Заполните все поля', 'error')
-            return redirect(url_for('Make_appointment', clinic_slug=clinic_slug))
+            return redirect(url_for('Make_appointment', clinic_slug=clinic_slug_post))
 
         try:
             appointment_datetime_str = f"{appointment_date} {appointment_time}"
@@ -382,7 +385,7 @@ def Make_appointment(clinic_slug):
 
             if appointment_datetime <= current_datetime:
                 flash('Нельзя записаться на прошедшую дату или время!', 'error')
-                return redirect(url_for('Make_appointment', clinic_slug=clinic_slug))
+                return redirect(url_for('Make_appointment', clinic_slug=clinic_slug_post))
 
             busy = db.session.execute(text("""
                 SELECT id FROM appointments 
@@ -400,7 +403,7 @@ def Make_appointment(clinic_slug):
 
             if busy:
                 flash('Это время уже занято. Выберите другое время.', 'error')
-                return redirect(url_for('Make_appointment', clinic_slug=clinic_slug))
+                return redirect(url_for('Make_appointment', clinic_slug=clinic_slug_post))
 
             service = Service.query.get(service_id)
             service_price = service.price if service else 0
@@ -427,12 +430,12 @@ def Make_appointment(clinic_slug):
 
             db.session.commit()
             flash('Запись успешно создана! Мы свяжемся с вами для подтверждения.', 'success')
-            return redirect(url_for('user_appointments', clinic_slug=clinic_slug))
+            return redirect(url_for('user_appointments', clinic_slug=clinic_slug_post))
 
         except Exception as e:
             db.session.rollback()
-            flash('Ошибка при записи', 'error')
-            return redirect(url_for('Make_appointment', clinic_slug=clinic_slug))
+            flash(f'Ошибка при записи: {str(e)}', 'error')
+            return redirect(url_for('Make_appointment', clinic_slug=clinic_slug_post))
 
     doctors = db.session.execute(text("""
         SELECT id, first_name, last_name, position 
@@ -481,7 +484,8 @@ def Make_appointment(clinic_slug):
                            current_date=current_datetime.strftime('%Y-%m-%d'),
                            selected_doctor=selected_doctor,
                            selected_date=selected_date,
-                           all_slots=all_slots)
+                           all_slots=all_slots,
+                           current_clinic=clinic_info)
 
 
 @app.route('/<clinic_slug>/my_appointments')

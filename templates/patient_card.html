@@ -58,7 +58,7 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header bg-secondary text-white">
-                    <h5 class="mb-0"> История приемов</h5>
+                    <h5 class="mb-0"> История приёмов</h5>
                 </div>
                 <div class="card-body">
                     {% if appointments %}
@@ -137,11 +137,11 @@
                         </div>
                     {% else %}
                         <div class="text-center py-4">
-                            <h5>У вас пока нет записей на прием</h5>
-                            <p class="text-muted">Запишитесь на прием, чтобы увидеть историю здесь</p>
-                                <a href="{{ url_for('Make_appointment', clinic_slug=current_clinic.slug) }}" class="btn btn-primary">
-                                    Записаться на прием
-                                </a>
+                            <h5>У вас пока нет записей на приём</h5>
+                            <p class="text-muted">Запишитесь на приём, чтобы увидеть историю здесь</p>
+                            <a href="{{ url_for('Make_appointment') }}" class="btn btn-primary">
+                                Записаться на приём
+                            </a>
                         </div>
                     {% endif %}
                 </div>
@@ -156,7 +156,7 @@
             <div class="card text-center">
                 <div class="card-body">
                     <h5 class="card-title">{{ appointments|length }}</h5>
-                    <p class="card-text">Всего приемов</p>
+                    <p class="card-text">Всего приёмов</p>
                 </div>
             </div>
         </div>
@@ -166,7 +166,7 @@
                     <h5 class="card-title text-success">
                         {{ appointments|selectattr('status_name', 'equalto', 'Завершен')|list|length }}
                     </h5>
-                    <p class="card-text">Завершенных приемов</p>
+                    <p class="card-text">Завершенных приёмов</p>
                 </div>
             </div>
         </div>
@@ -176,7 +176,7 @@
                     <h5 class="card-title text-primary">
                         {{ appointments|selectattr('status_name', 'equalto', 'Подтвержден')|list|length }}
                     </h5>
-                    <p class="card-text">Предстоящих приемов</p>
+                    <p class="card-text">Предстоящих приеёмов</p>
                 </div>
             </div>
         </div>
